@@ -50,7 +50,7 @@
   <div class="hud-top">
     <div class="hud-group">
       <div class="chip">TIRIKLAR <strong id="alive">09</strong></div>
-      <div class="chip">ELIMINATSIYA <strong id="kills">00</strong></div>
+      <div class="chip">BELGILAR <strong id="kills">00</strong></div>
     </div>
     <div class="hud-right">
       <div class="status-stack"><div class="status-row"><div class="chip">FPS <strong id="fps">--</strong></div><div class="chip">PING <strong id="ping">OFFLINE</strong></div></div><div class="status-row"><div class="chip">ZONA <strong id="zone-time">01:30</strong></div></div></div>
@@ -63,13 +63,13 @@
     <div class="barbox"><div class="bar-head"><span>SOG'LIQ</span><b id="health-number">100</b></div><div class="bar"><div id="health-fill" class="bar-fill"></div></div></div>
     <div class="barbox"><div class="bar-head"><span>HIMOYA</span><b id="armor-number">0</b></div><div class="bar"><div id="armor-fill" class="bar-fill armor" style="width:0"></div></div></div>
   </div>
-  <div id="bottom-right"><div class="weapon-card"><div class="weapon-name" id="weapon-name">9MM SIDEARM</div><div class="ammo"><span id="ammo">12</span> <small>/ <span id="reserve">48</span></small></div><div class="hint">LMB: OTISH · R: QAYTA ZARYAD<br><span id="nearby-hint">Yaqindagi o'ljani F bilan ol</span></div></div></div>
-  <div id="desktop-help">WASD — HARAKAT &nbsp; · &nbsp; SHIFT — TEZLIK &nbsp; · &nbsp; SPACE — SAKRASH &nbsp; · &nbsp; F — OLISH &nbsp; · &nbsp; M — XARITA &nbsp; · &nbsp; ESC — PAUZA</div>
+  <div id="bottom-right"><div class="weapon-card"><div class="weapon-name" id="weapon-name">SIGNAL MARKER</div><div class="ammo"><span id="ammo">02</span> <small>SKAN / BELGILAR <span id="reserve">00</span></small></div><div class="hint">CLICK: YAQIN RAQIBNI BELGILA · R: SKAN<br><span id="nearby-hint">Yaqindagi signalni F bilan ol</span></div></div></div>
+  <div id="desktop-help">WASD — HARAKAT &nbsp; · &nbsp; SHIFT — TEZLIK &nbsp; · &nbsp; SPACE — SAKRASH &nbsp; · &nbsp; CLICK — BELGILA &nbsp; · &nbsp; R — SKAN &nbsp; · &nbsp; F — OLISH &nbsp; · &nbsp; M — XARITA</div>
 </div>
 <div id="look-zone"></div>
 <div class="mobile-controls">
   <div id="stick-area" class="stick-area"><div id="stick-knob" class="stick-knob"></div></div>
-  <button id="touch-fire" class="touch-btn touch-fire">OTISH</button><button id="touch-jump" class="touch-btn touch-jump">SAKRASH</button><button id="touch-reload" class="touch-btn touch-reload">QAYTA</button><button id="touch-use" class="touch-btn touch-use">OLISH</button><button id="touch-crouch" class="touch-btn touch-crouch">EGILISH</button>
+  <button id="touch-fire" class="touch-btn touch-fire">BELGILA</button><button id="touch-jump" class="touch-btn touch-jump">SAKRASH</button><button id="touch-reload" class="touch-btn touch-reload">SKAN</button><button id="touch-use" class="touch-btn touch-use">OLISH</button><button id="touch-crouch" class="touch-btn touch-crouch">EGILISH</button>
 </div>
 <div id="modal"><div class="modal-card">
   <div class="modal-header"><div><div class="eyebrow">UZB ROYALE</div><div class="modal-title" id="modal-title">SOZLAMALAR</div></div><button id="close-modal" class="close-btn" aria-label="Yopish">×</button></div>
@@ -105,7 +105,7 @@ let renderer, scene, camera, clock;
 let worldReady = false, gameActive = false, paused = false, menuOpen = true;
 let yaw = 0, pitch = 0.18, cameraDistance = 9.2, mouseDown = false, lastMouseX = 0, lastMouseY = 0;
 let fpsFrames = 0, fpsMark = 0, currentFPS = 0, lastRender = 0, lastShot = 0, reloadTimer = 0, toastTimer = 0;
-let zoneElapsed = 0, zoneRadius = 500, zoneStage = 0, botMessageTimer = 0;
+let zoneElapsed = 0, zoneRadius = 500, zoneStage = 0, botMessageTimer = 0, lastTag = 0, scanUntil = 0;
 let audioContext = null;
 const settings = {quality:"medium", fpsCap:60, showFPS:true, sensitivity:1, volume:0.35};
 const keys = Object.create(null), touch = {x:0,y:0,lookPointer:null,lastX:0,lastY:0};
@@ -114,7 +114,7 @@ const raycaster = new THREE.Raycaster();
 const centerNdc = new THREE.Vector2(0,0);
 const skinColors = [0x758b78,0xb3a17f,0x526f9d,0x8c5e4e];
 let selectedSkin = 0;
-const state = {health:100,armor:0,kills:0,ammo:12,reserve:48,weapon:"9MM SIDEARM",damage:22,fireRate:0.34,reloading:false};
+const state = {health:100,armor:0,kills:0,scanCharges:2,scanCooldown:0};
 const player = {group:null,pos:new THREE.Vector3(5,0,48),velY:0,onGround:true,crouched:false, moving:false};
 const zoneCenter = new THREE.Vector2(0,0);
 let zoneRing, zoneDisc, minimap, bigmap, toastTimerId, menuStateBeforePause = null;
@@ -213,13 +213,13 @@ function makePerson(color=skinColors[selectedSkin],isBot=false){
   addMesh(new THREE.BoxGeometry(.34,.18,.52),hexMaterial(0x2a302f),side*.24,.09,-.04,g);
  }
  const pack=addMesh(new THREE.BoxGeometry(.48,.7,.25),hexMaterial(isBot?0x626451:0x505e4c),0,1.45,.33,g);
- if(!isBot){const gun=addMesh(new THREE.BoxGeometry(.17,.15,.92),hexMaterial(0x252d31,{metalness:.4}),.48,1.35,-.35,g);addMesh(new THREE.BoxGeometry(.14,.3,.18),hexMaterial(0x30383a),.48,1.15,-.17,g)}
+ 
  return g
 }
 function createPlayer(){player.group=makePerson();player.group.position.copy(player.pos);scene.add(player.group)}
 function createLoot(){
  const spots=[[-235,35],[-170,-95],[-290,-300],[-45,-285],[37,72],[65,125],[260,205],[350,-26],[275,-304],[60,268],[-60,170],[205,5]];
- spots.forEach((p,i)=>{const g=new THREE.Group();const box=addMesh(new THREE.BoxGeometry(1.7,.9,1.2),hexMaterial(i%4===0?0x9e6847:0x4c6b5d),0,.65,0,g);addMesh(new THREE.BoxGeometry(1.75,.13,1.24),hexMaterial(0xd0bb83),0,1.13,0,g);const glow=addMesh(new THREE.OctahedronGeometry(.25,0),new THREE.MeshStandardMaterial({color:0x73e5bd,emissive:0x1f8c70,emissiveIntensity:1.5}),0,1.65,0,g);g.position.set(p[0],0,p[1]);g.userData={kind:i%5===4?"med":"rifle",used:false,glow};scene.add(g);lootItems.push(g)})
+ spots.forEach((p,i)=>{const g=new THREE.Group();const box=addMesh(new THREE.BoxGeometry(1.7,.9,1.2),hexMaterial(i%4===0?0x9e6847:0x4c6b5d),0,.65,0,g);addMesh(new THREE.BoxGeometry(1.75,.13,1.24),hexMaterial(0xd0bb83),0,1.13,0,g);const glow=addMesh(new THREE.OctahedronGeometry(.25,0),new THREE.MeshStandardMaterial({color:0x73e5bd,emissive:0x1f8c70,emissiveIntensity:1.5}),0,1.65,0,g);g.position.set(p[0],0,p[1]);g.userData={kind:i%5===4?"med":"scan",used:false,glow};scene.add(g);lootItems.push(g)})
 }
 function createBots(){for(let i=0;i<8;i++){const angle=(i/8)*Math.PI*2+.4;const distance=150+(i%3)*50;const g=makePerson([0x6c7968,0x8e7359,0x6b7682,0x655d4d,0x8b6b5c,0x586a5a,0x777c7d,0x8a805e][i],true);g.position.set(Math.cos(angle)*distance,0,Math.sin(angle)*distance);g.rotation.y=Math.random()*Math.PI*2;g.traverse(o=>{if(o.isMesh)o.userData.botId=i});scene.add(g);bots.push({id:i,group:g,health:100,active:true,fireCooldown:1.2+Math.random()*2,walkPhase:Math.random()*6})}}
 function moveCamera(dt){if(!player.group)return;const target=player.group.position.clone().add(new THREE.Vector3(0,player.crouched?1.25:1.72,0));const dist=cameraDistance;const offset=new THREE.Vector3(Math.sin(yaw)*dist,Math.sin(pitch)*dist+2.1,Math.cos(yaw)*dist);camera.position.copy(target).add(offset);camera.lookAt(target);camera.updateMatrixWorld()}
@@ -245,25 +245,45 @@ function updateBots(dt){
  for(const bot of bots){if(!bot.active)continue;const p=bot.group.position;const dx=player.group.position.x-p.x,dz=player.group.position.z-p.z,d=Math.hypot(dx,dz);bot.walkPhase+=dt*5;
   if(d>15){const sp=2.2*dt;if(!blocked(p.x+dx/d*sp,p.z))p.x+=dx/d*sp;if(!blocked(p.x,p.z+dz/d*sp))p.z+=dz/d*sp;bot.group.rotation.y=Math.atan2(dx,dz)}else{bot.group.rotation.y=Math.atan2(dx,dz)}
   bot.group.position.y=Math.sin(bot.walkPhase)*.025;
-  bot.fireCooldown-=dt;if(d<68&&bot.fireCooldown<=0){bot.fireCooldown=1.8+Math.random()*2.2;if(Math.random()<Math.max(.12,.44-d/170)){const damage=3+Math.random()*5;state.armor=Math.max(0,state.armor-damage*.5);state.health=Math.max(0,state.health-damage*(state.armor>0 ? .5 : 1));if(state.health<=0)endGame(false);else updateHUD()}}
+  bot.fireCooldown-=dt;if(d<3.8&&bot.fireCooldown<=0){bot.fireCooldown=2.6+Math.random()*1.6;const damage=5+Math.random()*4;state.armor=Math.max(0,state.armor-damage*.5);state.health=Math.max(0,state.health-damage*(state.armor>0 ? .5 : 1));if(state.health<=0)endGame(false);else updateHUD()}
  }
 }
-function drawTracer(from,to,color=0xe8c779){const geo=new THREE.BufferGeometry().setFromPoints([from.clone(),to.clone()]);const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color,transparent:true,opacity:.85}));scene.add(line);tracers.push({line,life:.075})}
-function playBeep(freq=100,duration=.08,volume=1){if(settings.volume<=0)return;try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==="suspended")audioContext.resume();const o=audioContext.createOscillator(),g=audioContext.createGain();o.type="sawtooth";o.frequency.setValueAtTime(freq,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(25,freq*.48),audioContext.currentTime+duration);g.gain.setValueAtTime(settings.volume*.08*volume,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+duration)}catch(e){}}
-function shoot(){if(!gameActive||paused||state.reloading)return;const now=performance.now()/1000;if(now-lastShot<state.fireRate)return;if(state.ammo<=0){showToast("O'q tugadi — R bilan qayta zaryadla");return}lastShot=now;state.ammo--;playBeep(state.weapon==="9MM SIDEARM"?105:80,.09,1);
- raycaster.setFromCamera(centerNdc,camera);const targets=[];for(const b of bots)if(b.active)targets.push(b.group);const hits=raycaster.intersectObjects(targets,true);let end=camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(110));
- if(hits.length){const hit=hits[0];end.copy(hit.point);const id=hit.object.userData.botId;const bot=bots.find(b=>b.id===id);if(bot&&bot.active){bot.health-=state.damage;$("crosshair").classList.add("hit");setTimeout(()=>$("crosshair").classList.remove("hit"),100);playBeep(650,.045,.6);if(bot.health<=0){bot.active=false;scene.remove(bot.group);state.kills++;say("DUSHMAN YO'Q QILINDI");if(bots.every(b=>!b.active))endGame(true)}}}
- drawTracer(camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(1.8)),end,state.weapon==="9MM SIDEARM"?0xe8c779:0xf2d6a0);updateHUD()
+function tagOpponent(){
+ if(!gameActive||paused)return;
+ const now=performance.now()/1000;if(now-lastTag<.55)return;lastTag=now;
+ const dir=camera.getWorldDirection(new THREE.Vector3());let nearest=null,best=17;
+ for(const bot of bots){if(!bot.active)continue;const target=bot.group.position.clone().add(new THREE.Vector3(0,1.5,0));const offset=target.clone().sub(camera.position);const distance=offset.length();const facing=dir.dot(offset.normalize());if(distance<best&&facing>.91){nearest=bot;best=distance}}
+ if(!nearest){showToast("Raqib yaqin va ko'rinadigan joyda bo'lsa, uni belgilash mumkin.");return}
+ nearest.active=false;scene.remove(nearest.group);state.kills++;say("RAQIB BELGILANDI");
+ if(bots.every(b=>!b.active))endGame(true);
+ updateHUD();playBeep(620,.06,.7);
 }
-function reload(){if(!gameActive||paused||state.reloading||state.ammo>= (state.weapon==="9MM SIDEARM"?12:30)||state.reserve<=0)return;state.reloading=true;showToast("Qayta zaryadlanmoqda...");reloadTimer=1.25}
-function finishReload(){const capacity=state.weapon==="9MM SIDEARM"?12:30;const amount=Math.min(capacity-state.ammo,state.reserve);state.ammo+=amount;state.reserve-=amount;state.reloading=false;updateHUD();showToast("Qurol tayyor")}
-function interact(){if(!gameActive||paused)return;let closest=null,dist=9;for(const item of lootItems){if(item.userData.used)continue;const d=item.position.distanceTo(player.group.position);if(d<dist){dist=d;closest=item}}if(!closest){showToast("Yaqinda olinadigan o'lja yo'q");return}closest.userData.used=true;scene.remove(closest);if(closest.userData.kind==="med"){state.health=Math.min(100,state.health+35);state.armor=Math.min(100,state.armor+15);showToast("Dori olindi: sog'liq va himoya tiklandi")}else{state.weapon="QISQA AVTOMAT";state.damage=31;state.fireRate=.14;state.ammo=Math.max(state.ammo,30);state.reserve+=60;showToast("Avtomat va o'q-dori olindi")}updateHUD()}
+function scanPulse(){
+ if(!gameActive||paused)return;
+ if(state.scanCooldown>0){showToast("Skan tayyor bo'lishi uchun biroz kut");return}
+ if(state.scanCharges<=0){showToast("Signal zaryadi yo'q — xaritada yashil signal qidir");return}
+ state.scanCharges--;state.scanCooldown=8;scanUntil=performance.now()+5000;showToast("Skan faollashdi: raqiblar vaqtincha xaritada ko'rinadi");updateHUD();
+}
+function interact(){
+ if(!gameActive||paused)return;
+ let closest=null,dist=9;for(const item of lootItems){if(item.userData.used)continue;const d=item.position.distanceTo(player.group.position);if(d<dist){dist=d;closest=item}}
+ if(!closest){showToast("Yaqinda olinadigan signal yoki dori yo'q");return}
+ closest.userData.used=true;scene.remove(closest);
+ if(closest.userData.kind==="med"){state.health=Math.min(100,state.health+35);state.armor=Math.min(100,state.armor+15);showToast("Tibbiy to'plam olindi")}
+ else{state.scanCharges=Math.min(5,state.scanCharges+1);showToast("Signal kristali olindi")}
+ updateHUD()
+}
 function updateHUD(){
- $("alive").textContent=String(1+bots.filter(b=>b.active).length).padStart(2,"0");$("kills").textContent=String(state.kills).padStart(2,"0");$("health-number").textContent=Math.ceil(state.health);$("health-fill").style.width=Math.max(0,state.health)+"%";$("armor-number").textContent=Math.ceil(state.armor);$("armor-fill").style.width=Math.max(0,state.armor)+"%";$("ammo").textContent=String(state.ammo).padStart(2,"0");$("reserve").textContent=state.reserve;$("weapon-name").textContent=state.weapon;
- let nearest=null,d=999;for(const item of lootItems)if(!item.userData.used){const dd=item.position.distanceTo(player.group?player.group.position:new THREE.Vector3());if(dd<d){d=dd;nearest=item}}$("nearby-hint").textContent=nearest&&d<9?"F / OLISH — YONINGDA O'lja":"Yaqindagi o'ljani F bilan ol"
+ $("alive").textContent=String(1+bots.filter(b=>b.active).length).padStart(2,"0");
+ $("kills").textContent=String(state.kills).padStart(2,"0");
+ $("health-number").textContent=Math.ceil(state.health);$("health-fill").style.width=Math.max(0,state.health)+"%";
+ $("armor-number").textContent=Math.ceil(state.armor);$("armor-fill").style.width=Math.max(0,state.armor)+"%";
+ $("ammo").textContent=String(state.scanCharges).padStart(2,"0");$("reserve").textContent=String(state.kills).padStart(2,"0");$("weapon-name").textContent="SIGNAL MARKER";
+ let nearest=null,d=999;for(const item of lootItems)if(!item.userData.used){const dd=item.position.distanceTo(player.group?player.group.position:new THREE.Vector3());if(dd<d){d=dd;nearest=item}}
+ $("nearby-hint").textContent=nearest&&d<9?"F / OLISH — YONINGDA SIGNAL":"Yaqindagi signalni F bilan ol"
 }
 function endGame(won){gameActive=false;paused=true;if(document.pointerLockElement)document.exitPointerLock();$("main-menu").style.display="flex";$("play-btn").textContent=won?"↻ QAYTA O'YNASH":"↻ QAYTA URINISH";$("main-menu").querySelector(".hero-title").innerHTML=won?"G'ALABA<br><span>UZB ROYALE</span>":"O'YIN<br><span>TUGADI</span>";$("main-menu").querySelector(".hero-sub").textContent=won?"Ajoyib! Barcha dushmanlar yo'q qilindi. Prototip sinovi tugadi.":"Qahramon yiqildi. Yana bir bor harakat qilib ko'r.";say(won?"G'ALABA!":"O'YIN TUGADI",3500)}
-function startGame(){if(!worldReady)return;gameActive=true;paused=false;menuOpen=false;zoneElapsed=0;zoneStage=0;setZoneRadius(500);state.health=100;state.armor=0;state.kills=0;state.ammo=12;state.reserve=48;state.weapon="9MM SIDEARM";state.damage=22;state.fireRate=.34;state.reloading=false;player.group.position.set(5,0,48);player.pos.copy(player.group.position);player.velY=0;player.onGround=true;player.crouched=false;yaw=0;pitch=.18;for(const b of bots){b.active=true;b.health=100;const angle=(b.id/8)*Math.PI*2+.4;const distance=150+(b.id%3)*50;b.group.position.set(Math.cos(angle)*distance,0,Math.sin(angle)*distance);scene.add(b.group)}for(const item of lootItems){item.userData.used=false;scene.add(item)}$("main-menu").style.display="none";$("modal").style.display="none";$("map-overlay").style.display="none";document.body.classList.add("playing");updateHUD();say("OMAD — OMON QOL!");if(window.matchMedia("(pointer:fine)").matches&&canvas.requestPointerLock){try{canvas.requestPointerLock()}catch(e){}}}
+function startGame(){if(!worldReady)return;gameActive=true;paused=false;menuOpen=false;zoneElapsed=0;zoneStage=0;setZoneRadius(500);state.health=100;state.armor=0;state.kills=0;state.scanCharges=2;state.scanCooldown=0;lastTag=0;scanUntil=0;player.group.position.set(5,0,48);player.pos.copy(player.group.position);player.velY=0;player.onGround=true;player.crouched=false;yaw=0;pitch=.18;for(const b of bots){b.active=true;b.health=100;const angle=(b.id/8)*Math.PI*2+.4;const distance=150+(b.id%3)*50;b.group.position.set(Math.cos(angle)*distance,0,Math.sin(angle)*distance);scene.add(b.group)}for(const item of lootItems){item.userData.used=false;scene.add(item)}$("main-menu").style.display="none";$("modal").style.display="none";$("map-overlay").style.display="none";document.body.classList.add("playing");updateHUD();say("OMAD — OMON QOL!");if(window.matchMedia("(pointer:fine)").matches&&canvas.requestPointerLock){try{canvas.requestPointerLock()}catch(e){}}}
 function togglePause(){if(!gameActive)return;paused=!paused;if(paused){$("main-menu").style.display="flex";$("main-menu").querySelector(".hero-title").innerHTML="JANG<br><span>PAUZADA</span>";$("main-menu").querySelector(".hero-sub").textContent="Davom etish uchun jangni boshlash tugmasi o'rniga pastdagi davom etishni tanla.";const btn=$("play-btn");btn.textContent="▶ DAVOM ETISH";btn.onclick=resumeGame;$("settings-btn").onclick=()=>openSettings(true);$("loadout-btn").style.display="none";if(document.pointerLockElement)document.exitPointerLock()}else resumeGame()}
 function resumeGame(){if(!gameActive)return;paused=false;$("main-menu").style.display="none";$("play-btn").textContent="▶ JANGNI BOSHLASH";$("play-btn").onclick=startGame;$("settings-btn").onclick=()=>openSettings(false);$("loadout-btn").style.display="";if(window.matchMedia("(pointer:fine)").matches&&canvas.requestPointerLock){try{canvas.requestPointerLock()}catch(e){}}}
 function openSettings(fromPause=false){menuStateBeforePause=fromPause;$("modal-title").textContent="SOZLAMALAR";$("settings-content").hidden=false;$("loadout-content").hidden=true;$("back-menu").style.display=fromPause?"inline-block":"none";$("modal").style.display="grid";$("quality").value=settings.quality;$("fps-cap").value=String(settings.fpsCap);$("show-fps").value=settings.showFPS?"on":"off";$("sensitivity").value=settings.sensitivity;$("volume").value=settings.volume}
@@ -278,7 +298,7 @@ function drawMap(ctx,size){if(!ctx)return;const c=ctx.canvas,w=c.width,h=c.heigh
  ctx.fillStyle="#4caaa7";ctx.beginPath();const rp=[[214,-395],[175,-275],[130,-165],[80,-52],[40,45],[-10,142],[-74,250],[-140,385]];rp.forEach((p,i)=>i?ctx.lineTo(px(p[0]),pz(p[1])):ctx.moveTo(px(p[0]),pz(p[1])));ctx.lineWidth=5;ctx.strokeStyle="#4caaa7";ctx.stroke();
  ctx.strokeStyle="#c9eaf5";ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(0),pz(0),zoneRadius*scale,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#e8c779";ctx.font="bold "+Math.max(9,size*.014)+"px system-ui";ctx.textAlign="center";
  [["YANGI SHAHAR",-215,-120],["ESKI MAHALLA",22,25],["AERODROM",-335,-360],["SANOAT HUDUDI",-12,-365],["PAXTAZOR",268,325],["QIZILQUM KONI",370,115],["TOG'LI KO'L",280,-370],["QADIMIY QAL'A",40,335]].forEach(t=>ctx.fillText(t[0],px(t[1]),pz(t[2])));
- for(const b of bots)if(b.active){ctx.fillStyle="#ed7367";ctx.beginPath();ctx.arc(px(b.group.position.x),pz(b.group.position.z),Math.max(2,size*.005),0,Math.PI*2);ctx.fill()}
+ for(const b of bots)if(b.active){ctx.fillStyle=performance.now()<scanUntil?"#e8c779":"#ed7367";ctx.beginPath();ctx.arc(px(b.group.position.x),pz(b.group.position.z),Math.max(2,size*.005),0,Math.PI*2);ctx.fill()}
  if(player.group){ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(px(player.group.position.x),pz(player.group.position.z),Math.max(3,size*.007),0,Math.PI*2);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px(player.group.position.x),pz(player.group.position.z));ctx.lineTo(px(player.group.position.x-Math.sin(yaw)*12),pz(player.group.position.z-Math.cos(yaw)*12));ctx.stroke()}
 }
 function bindUI(){
@@ -289,9 +309,9 @@ function bindUI(){
  document.querySelectorAll(".skin").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("active",x===btn));selectedSkin=Number(btn.dataset.skin)}));
  $("apply-skin").addEventListener("click",()=>{if(player.group){scene.remove(player.group);player.group=makePerson(skinColors[selectedSkin]);player.group.position.copy(player.pos);scene.add(player.group)}closeModal();showToast("Qahramon kiyimi tanlandi")});
  $("close-map").addEventListener("click",()=>mapToggle(false));
- window.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="Space"&&gameActive&&!paused&&player.onGround){player.velY=7.3;player.onGround=false}if(e.code==="KeyR")reload();if(e.code==="KeyF")interact();if(e.code==="KeyM"&&gameActive)mapToggle($("map-overlay").style.display!=="grid");if(e.code==="Escape"&&gameActive){if($("map-overlay").style.display==="grid")mapToggle(false);else if($("modal").style.display==="grid")closeModal();else togglePause()}});
+ window.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="Space"&&gameActive&&!paused&&player.onGround){player.velY=7.3;player.onGround=false}if(e.code==="KeyR")scanPulse();if(e.code==="KeyF")interact();if(e.code==="KeyM"&&gameActive)mapToggle($("map-overlay").style.display!=="grid");if(e.code==="Escape"&&gameActive){if($("map-overlay").style.display==="grid")mapToggle(false);else if($("modal").style.display==="grid")closeModal();else togglePause()}});
  window.addEventListener("keyup",e=>{keys[e.code]=false});
- canvas.addEventListener("mousedown",e=>{mouseDown=true;lastMouseX=e.clientX;lastMouseY=e.clientY;if(gameActive&&!paused){if(document.pointerLockElement!==canvas){if(e.button===0)shoot()}else if(e.button===0)shoot()}});
+ canvas.addEventListener("mousedown",e=>{mouseDown=true;lastMouseX=e.clientX;lastMouseY=e.clientY;if(gameActive&&!paused){if(document.pointerLockElement!==canvas){if(e.button===0)tagOpponent()}else if(e.button===0)tagOpponent()}});
  window.addEventListener("mouseup",()=>mouseDown=false);
  window.addEventListener("mousemove",e=>{if(!gameActive||paused)return;if(document.pointerLockElement===canvas){yaw-=e.movementX*.0024*settings.sensitivity;pitch=Math.max(-.08,Math.min(.72,pitch+e.movementY*.0018*settings.sensitivity))}else if(mouseDown){yaw-=(e.clientX-lastMouseX)*.004*settings.sensitivity;pitch=Math.max(-.08,Math.min(.72,pitch+(e.clientY-lastMouseY)*.003*settings.sensitivity));lastMouseX=e.clientX;lastMouseY=e.clientY}});
  canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -302,8 +322,8 @@ function bindUI(){
  $("look-zone").addEventListener("pointerdown",e=>{if(e.pointerType==="touch"){touch.lookPointer=e.pointerId;touch.lastX=e.clientX;touch.lastY=e.clientY;$("look-zone").setPointerCapture(e.pointerId)}else{mouseDown=true;lastMouseX=e.clientX;lastMouseY=e.clientY}});
  $("look-zone").addEventListener("pointermove",e=>{if(e.pointerType==="touch"&&e.pointerId===touch.lookPointer){yaw-=(e.clientX-touch.lastX)*.006*settings.sensitivity;pitch=Math.max(-.08,Math.min(.72,pitch+(e.clientY-touch.lastY)*.004*settings.sensitivity));touch.lastX=e.clientX;touch.lastY=e.clientY}});
  $("look-zone").addEventListener("pointerup",e=>{if(e.pointerId===touch.lookPointer)touch.lookPointer=null;mouseDown=false});
- $("touch-fire").addEventListener("pointerdown",e=>{e.preventDefault();shoot()});$("touch-jump").addEventListener("pointerdown",e=>{e.preventDefault();if(player.onGround){player.velY=7.3;player.onGround=false}});
- $("touch-reload").addEventListener("pointerdown",e=>{e.preventDefault();reload()});$("touch-use").addEventListener("pointerdown",e=>{e.preventDefault();interact()});$("touch-crouch").addEventListener("pointerdown",e=>{e.preventDefault();player.crouched=!player.crouched;showToast(player.crouched?"Egildi":"Tik turdi")});
+ $("touch-fire").addEventListener("pointerdown",e=>{e.preventDefault();tagOpponent()});$("touch-jump").addEventListener("pointerdown",e=>{e.preventDefault();if(player.onGround){player.velY=7.3;player.onGround=false}});
+ $("touch-reload").addEventListener("pointerdown",e=>{e.preventDefault();scanPulse()});$("touch-use").addEventListener("pointerdown",e=>{e.preventDefault();interact()});$("touch-crouch").addEventListener("pointerdown",e=>{e.preventDefault();player.crouched=!player.crouched;showToast(player.crouched?"Egildi":"Tik turdi")});
  window.addEventListener("resize",()=>{if(camera&&renderer){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight,false);applySettings()}});
 }
 function updateStick(e){const r=$("stick-area").getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy;const max=r.width*.31,d=Math.hypot(dx,dy)||1;if(d>max){dx=dx/d*max;dy=dy/d*max}touch.x=dx/max;touch.y=dy/max;$("stick-knob").style.transform="translate("+dx+"px,"+dy+"px)"}
@@ -313,7 +333,7 @@ function animate(t){
  const dt=lastRender?Math.min((t-lastRender)/1000,.045):.016;lastRender=t;
  if(!renderer||!worldReady)return;
  fpsFrames++;if(t-fpsMark>550){currentFPS=Math.round(fpsFrames*1000/(t-fpsMark));fpsFrames=0;fpsMark=t;$("fps").textContent=settings.showFPS?String(currentFPS):"—";$("fps").parentElement.style.display=settings.showFPS?"":"none"}
- if(gameActive&&!paused){zoneElapsed+=dt;if(zoneElapsed>90&&zoneStage<4){zoneStage++;setZoneRadius(Math.max(95,500-zoneStage*92));say("XAVFSIZ ZONA QISQARYAPTI",2100)}if(zoneElapsed>360){zoneElapsed=0}if(reloadTimer>0){reloadTimer-=dt;if(reloadTimer<=0)finishReload()}updatePlayer(dt);updateBots(dt);for(const item of lootItems)if(!item.userData.used){item.rotation.y+=dt*.4;item.userData.glow.position.y=1.6+Math.sin(t*.004+item.position.x)*.17}for(const tr of [...tracers]){tr.life-=dt;tr.line.material.opacity=Math.max(0,tr.life/.075);if(tr.life<=0){scene.remove(tr.line);tr.line.geometry.dispose();tr.line.material.dispose();tracers.splice(tracers.indexOf(tr),1)}}$("zone-time").textContent=String(Math.max(0,90-zoneElapsed%90)|0).padStart(2,"0")+"s";if(minimap&&Math.floor(t/160)%2===0)drawMap(minimap,180)}
+ if(gameActive&&!paused){zoneElapsed+=dt;if(zoneElapsed>90&&zoneStage<4){zoneStage++;setZoneRadius(Math.max(95,500-zoneStage*92));say("XAVFSIZ ZONA QISQARYAPTI",2100)}if(zoneElapsed>360){zoneElapsed=0}if(state.scanCooldown>0)state.scanCooldown=Math.max(0,state.scanCooldown-dt)updatePlayer(dt);updateBots(dt);for(const item of lootItems)if(!item.userData.used){item.rotation.y+=dt*.4;item.userData.glow.position.y=1.6+Math.sin(t*.004+item.position.x)*.17}for(const tr of [...tracers]){tr.life-=dt;tr.line.material.opacity=Math.max(0,tr.life/.075);if(tr.life<=0){scene.remove(tr.line);tr.line.geometry.dispose();tr.line.material.dispose();tracers.splice(tracers.indexOf(tr),1)}}$("zone-time").textContent=String(Math.max(0,90-zoneElapsed%90)|0).padStart(2,"0")+"s";if(minimap&&Math.floor(t/160)%2===0)drawMap(minimap,180)}
  moveCamera(dt);renderer.render(scene,camera);
 }
 function boot(){loadSettings();createWorld();bindUI();requestAnimationFrame(animate);window.addEventListener("contextmenu",e=>e.preventDefault())}
