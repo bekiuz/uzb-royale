@@ -230,7 +230,7 @@ function updatePlayer(dt){
  let strafe=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+touch.x;
  const mag=Math.hypot(forward,strafe);if(mag>1){forward/=mag;strafe/=mag}
  player.moving=mag>.07;
- const speed=(keys.ShiftLeft||keys.ShiftRight?10:6)*(player.crouched?.48:1);
+ const speed=(keys.ShiftLeft||keys.ShiftRight?10:6)*(player.crouched ? .48 : 1);
  const dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*strafe)*speed*dt;
  const dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*strafe)*speed*dt;
  const nx=player.group.position.x+dx,nz=player.group.position.z+dz;
@@ -245,7 +245,7 @@ function updateBots(dt){
  for(const bot of bots){if(!bot.active)continue;const p=bot.group.position;const dx=player.group.position.x-p.x,dz=player.group.position.z-p.z,d=Math.hypot(dx,dz);bot.walkPhase+=dt*5;
   if(d>15){const sp=2.2*dt;if(!blocked(p.x+dx/d*sp,p.z))p.x+=dx/d*sp;if(!blocked(p.x,p.z+dz/d*sp))p.z+=dz/d*sp;bot.group.rotation.y=Math.atan2(dx,dz)}else{bot.group.rotation.y=Math.atan2(dx,dz)}
   bot.group.position.y=Math.sin(bot.walkPhase)*.025;
-  bot.fireCooldown-=dt;if(d<68&&bot.fireCooldown<=0){bot.fireCooldown=1.8+Math.random()*2.2;if(Math.random()<Math.max(.12,.44-d/170)){const damage=3+Math.random()*5;state.armor=Math.max(0,state.armor-damage*.5);state.health=Math.max(0,state.health-damage*(state.armor>0?.5:1));if(state.health<=0)endGame(false);else updateHUD()}}
+  bot.fireCooldown-=dt;if(d<68&&bot.fireCooldown<=0){bot.fireCooldown=1.8+Math.random()*2.2;if(Math.random()<Math.max(.12,.44-d/170)){const damage=3+Math.random()*5;state.armor=Math.max(0,state.armor-damage*.5);state.health=Math.max(0,state.health-damage*(state.armor>0 ? .5 : 1));if(state.health<=0)endGame(false);else updateHUD()}}
  }
 }
 function drawTracer(from,to,color=0xe8c779){const geo=new THREE.BufferGeometry().setFromPoints([from.clone(),to.clone()]);const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color,transparent:true,opacity:.85}));scene.add(line);tracers.push({line,life:.075})}
@@ -317,7 +317,4 @@ function animate(t){
  moveCamera(dt);renderer.render(scene,camera);
 }
 function boot(){loadSettings();createWorld();bindUI();requestAnimationFrame(animate);window.addEventListener("contextmenu",e=>e.preventDefault())}
-boot().catch(err=>{console.error(err);$("loading").innerHTML="3D MUHARRIRNI YUKLAB BO'LMADI<br><small style='display:block;color:#a8b1b8;margin-top:12px;letter-spacing:0'>Internetni tekshiring va sahifani yangilang.</small>"});
-</script>
-</body>
-</html>
+try{boot()}catch(err){console.error(err);$("loading").innerHTML="3D MUHARRIRNI YUKLAB BO'LMADI<br><small style='display:block;color:#a8b1ba;margin-top:12px;letter-spacing:0'>Internetni tekshiring va sahifani yangilang.</small>";}
