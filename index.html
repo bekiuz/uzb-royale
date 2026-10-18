@@ -50,7 +50,7 @@
   <div class="hud-top">
     <div class="hud-group">
       <div class="chip">TIRIKLAR <strong id="alive">09</strong></div>
-      <div class="chip">BELGILAR <strong id="kills">00</strong></div>
+      <div class="chip">ELIMINATSIYA <strong id="kills">00</strong></div>
     </div>
     <div class="hud-right">
       <div class="status-stack"><div class="status-row"><div class="chip">FPS <strong id="fps">--</strong></div><div class="chip">PING <strong id="ping">OFFLINE</strong></div></div><div class="status-row"><div class="chip">ZONA <strong id="zone-time">01:30</strong></div></div></div>
@@ -63,13 +63,13 @@
     <div class="barbox"><div class="bar-head"><span>SOG'LIQ</span><b id="health-number">100</b></div><div class="bar"><div id="health-fill" class="bar-fill"></div></div></div>
     <div class="barbox"><div class="bar-head"><span>HIMOYA</span><b id="armor-number">0</b></div><div class="bar"><div id="armor-fill" class="bar-fill armor" style="width:0"></div></div></div>
   </div>
-  <div id="bottom-right"><div class="signal-card"><div class="signal-name" id="signal-name">SIGNAL MARKER</div><div class="signal-count"><span id="signal-count">02</span> <small>SKAN / BELGILAR <span id="tags">00</span></small></div><div class="hint">CLICK: YAQIN RAQIBNI BELGILA · R: SKAN<br><span id="nearby-hint">Yaqindagi signalni F bilan ol</span></div></div></div>
-  <div id="desktop-help">WASD — HARAKAT &nbsp; · &nbsp; SHIFT — TEZLIK &nbsp; · &nbsp; SPACE — SAKRASH &nbsp; · &nbsp; CLICK — BELGILA &nbsp; · &nbsp; R — SKAN &nbsp; · &nbsp; F — OLISH &nbsp; · &nbsp; M — XARITA</div>
+  <div id="bottom-right"><div class="signal-card"><div class="signal-name" id="signal-name">UZ-7 · KARBIN</div><div class="signal-count"><span id="signal-count">02</span> <small>O‘Q / ZAXIRA <span id="tags">00</span></small></div><div class="hint">CHAP TUGMA: OTISH · R: QAYTA O‘QLASH · G: SKAN<br><span id="nearby-hint">Yaqindagi signalni F bilan ol</span></div></div></div>
+  <div id="desktop-help">WASD — HARAKAT &nbsp; · &nbsp; SHIFT — TEZLIK &nbsp; · &nbsp; SPACE — SAKRASH &nbsp; · &nbsp; CHAP TUGMA — OTISH &nbsp; · &nbsp; R — QAYTA O‘QLASH · G — SKAN &nbsp; · &nbsp; F — OLISH &nbsp; · &nbsp; M — XARITA</div>
 </div>
 <div id="look-zone"></div>
 <div class="mobile-controls">
   <div id="stick-area" class="stick-area"><div id="stick-knob" class="stick-knob"></div></div>
-  <button id="touch-tag" class="touch-btn touch-tag">BELGILA</button><button id="touch-jump" class="touch-btn touch-jump">SAKRASH</button><button id="touch-scan" class="touch-btn touch-scan">SKAN</button><button id="touch-use" class="touch-btn touch-use">OLISH</button><button id="touch-crouch" class="touch-btn touch-crouch">EGILISH</button>
+  <button id="touch-tag" class="touch-btn touch-tag">OTISH</button><button id="touch-jump" class="touch-btn touch-jump">SAKRASH</button><button id="touch-scan" class="touch-btn touch-scan">SKAN</button><button id="touch-use" class="touch-btn touch-use">OLISH</button><button id="touch-crouch" class="touch-btn touch-crouch">EGILISH</button>
 </div>
 <div id="modal"><div class="modal-card">
   <div class="modal-header"><div><div class="eyebrow">UZB ROYALE</div><div class="modal-title" id="modal-title">SOZLAMALAR</div></div><button id="close-modal" class="close-btn" aria-label="Yopish">×</button></div>
@@ -83,7 +83,7 @@
     <div class="settings-panel" data-panel="controls" hidden>
       <div class="setting-row"><div><b>Kamera sezgirligi</b><small>Sichqoncha va sensorli kamera burilishi.</small></div><input id="sensitivity" type="range" min="0.3" max="2.5" step="0.1" value="1"></div>
       <div class="setting-row"><div><b>Sensorli boshqaruv</b><small>Chap joystick harakat, o'ng tomonga surish kamera.</small></div><span style="color:var(--mint);font-size:12px">AVTOMATIK</span></div>
-      <div class="setting-note">Kompyuter: WASD yurish, sichqoncha kamerani burish, chap tugma — yaqin raqibni belgilash, R — skan, F — signal yoki tibbiy to'plamni olish, M — xarita, Space — sakrash.</div>
+      <div class="setting-note">Kompyuter: WASD yurish, sichqoncha kamerani burish, chap tugma — raqibga o‘q uzish, R — qayta o‘qlash, G — skan, F — signal yoki tibbiy to'plamni olish, M — xarita, Space — sakrash.</div>
     </div>
     <div class="settings-panel" data-panel="audio" hidden>
       <div class="setting-row"><div><b>O'yin ovozi</b><small>Prototipdagi signal belgisi ovozi.</small></div><input id="volume" type="range" min="0" max="1" step="0.05" value="0.35"></div>
@@ -114,7 +114,7 @@ const raycaster = new THREE.Raycaster();
 const centerNdc = new THREE.Vector2(0,0);
 const skinColors = [0x758b78,0xb3a17f,0x526f9d,0x8c5e4e];
 let selectedSkin = 0;
-const state = {health:100,armor:0,kills:0,scanCharges:2,scanCooldown:0};
+const state = {health:100,armor:0,kills:0,scanCharges:2,scanCooldown:0,ammo:30,reserveAmmo:120};
 const player = {group:null,pos:new THREE.Vector3(5,0,48),velY:0,onGround:true,crouched:false, moving:false};
 const zoneCenter = new THREE.Vector2(0,0);
 let zoneRing, zoneDisc, minimap, bigmap, toastTimerId, menuStateBeforePause = null;
@@ -128,21 +128,120 @@ function saveSettings(){settings.quality=$("quality").value;settings.fpsCap=Numb
 function applySettings(){if(renderer){const ratio=settings.quality==="low"?0.85:settings.quality==="medium"?1.15:1.7;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,ratio));renderer.shadowMap.enabled=settings.quality==="high";renderer.setSize(window.innerWidth,window.innerHeight,false)}}
 function hexMaterial(color,opts={}){return new THREE.MeshStandardMaterial({color,roughness:opts.roughness??0.9,metalness:opts.metalness??0,...opts})}
 function addMesh(geo,mat,x,y,z,parent=scene){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function planePatch(x,z,w,d,color){const m=addMesh(new THREE.PlaneGeometry(w,d),hexMaterial(color),x,0.08,z);m.rotation.x=-Math.PI/2;m.receiveShadow=true;return m}
+function planePatch(x,z,w,d,color){
+ const c=document.createElement("canvas");c.width=128;c.height=128;
+ const ctx=c.getContext("2d"),r=(color>>16)&255,g=(color>>8)&255,b=color&255;
+ const grad=ctx.createRadialGradient(64,64,10,64,64,62);
+ grad.addColorStop(0,"rgba("+r+","+g+","+b+",0.72)");
+ grad.addColorStop(.64,"rgba("+r+","+g+","+b+",0.45)");
+ grad.addColorStop(1,"rgba("+r+","+g+","+b+",0)");
+ ctx.fillStyle=grad;ctx.fillRect(0,0,128,128);
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+ const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false});
+ const m=addMesh(new THREE.CircleGeometry(1,56),mat,x,0.085,z);
+ m.rotation.x=-Math.PI/2;m.scale.set(w*.72,d*.72,1);m.rotation.z=Math.random()*.24;
+ m.receiveShadow=true;return m
+}
 function addRoad(x1,z1,x2,z2,width=10,color=0x343b3d){const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz);const road=addMesh(new THREE.BoxGeometry(width,0.22,len),hexMaterial(color,{roughness:1}), (x1+x2)/2,0.18,(z1+z2)/2);road.rotation.y=Math.atan2(dx,dz);const edgeMat=hexMaterial(0x8e8b78);for(let side of [-1,1]){const edge=addMesh(new THREE.BoxGeometry(.22,.24,len),edgeMat,(x1+x2)/2,0.22,(z1+z2)/2);edge.rotation.y=road.rotation.y;edge.position.x+=Math.cos(road.rotation.y)*side*width*.49;edge.position.z-=Math.sin(road.rotation.y)*side*width*.49}return road}
-function makeWallTexture(wall=0x8d9693,window=0x273e48,cols=4,rows=6){const c=document.createElement("canvas");c.width=256;c.height=256;const g=c.getContext("2d");const col="#"+wall.toString(16).padStart(6,"0");g.fillStyle=col;g.fillRect(0,0,256,256);g.fillStyle="#"+window.toString(16).padStart(6,"0");const cw=256/(cols*2+1),rh=256/(rows*2+1);for(let r=0;r<rows;r++)for(let x=0;x<cols;x++){g.fillRect(cw*(x*2+1),rh*(r*2+1),cw*.8,rh*.75);g.fillStyle="#9caaab";g.fillRect(cw*(x*2+1),rh*(r*2+1)+rh*.72,cw*.8,2);g.fillStyle="#"+window.toString(16).padStart(6,"0")}const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return tex}
+function makeWallTexture(wall=0x8d9693,window=0x273e48,cols=4,rows=6){
+ const c=document.createElement("canvas");c.width=512;c.height=512;const g=c.getContext("2d");
+ const rgb="#"+wall.toString(16).padStart(6,"0");g.fillStyle=rgb;g.fillRect(0,0,512,512);
+ for(let i=0;i<2400;i++){
+  const shade=Math.random()>.5?255:0;g.fillStyle="rgba("+shade+","+shade+","+shade+","+(Math.random()*.07)+")";
+  g.fillRect(Math.random()*512,Math.random()*512,1+Math.random()*14,1+Math.random()*9)
+ }
+ const base=(window>>>0).toString(16).padStart(6,"0"),cw=512/(cols*2+1),rh=512/(rows*2+1);
+ for(let r=0;r<rows;r++)for(let x=0;x<cols;x++){
+  const jitter=(Math.random()-.5)*5,wx=cw*(x*2+1)+jitter,wy=rh*(r*2+1)+((Math.random()-.5)*3);
+  const ww=cw*(.62+Math.random()*.12),wh=rh*(.56+Math.random()*.12);
+  g.fillStyle="rgba(28,35,36,.42)";g.fillRect(wx-3,wy-3,ww+6,wh+7);
+  g.fillStyle="#aab2ad";g.fillRect(wx-2,wy-2,ww+4,wh+4);
+  const glass=g.createLinearGradient(wx,wy,wx+ww,wy+wh);
+  glass.addColorStop(0,"#"+base);glass.addColorStop(.48,"#172932");glass.addColorStop(1,"#344c55");
+  g.fillStyle=glass;g.fillRect(wx,wy,ww,wh);
+  g.fillStyle="rgba(205,224,226,.2)";g.fillRect(wx+ww*.13,wy+2,Math.max(1,ww*.1),wh-4);
+  g.fillStyle="rgba(16,23,25,.8)";g.fillRect(wx+ww*.5,wy,Math.max(1,ww*.035),wh)
+ }
+ for(let y=0;y<=512;y+=Math.round(512/rows)){
+  g.fillStyle="rgba(35,42,39,.19)";g.fillRect(0,y,512,2);
+  g.fillStyle="rgba(236,229,210,.15)";g.fillRect(0,y+2,512,1)
+ }
+ for(let x=0;x<512;x+=Math.round(512/cols)){g.fillStyle="rgba(35,42,39,.12)";g.fillRect(x,0,1,512)}
+ for(let i=0;i<25;i++){g.fillStyle="rgba(54,47,38,.12)";g.fillRect(Math.random()*512,Math.random()*512,2+Math.random()*6,12+Math.random()*45)}
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;return tex
+}
+
 const cityTextures=[makeWallTexture(0x8b9695,0x253944,4,7),makeWallTexture(0xb0a995,0x344851,3,5),makeWallTexture(0x71817f,0x1b3039,4,6)];
 const cityMats=cityTextures.map(t=>new THREE.MeshStandardMaterial({map:t,roughness:.88}));
 const warehouseMat=hexMaterial(0x7c8583), roofMat=hexMaterial(0x554e43), windowMat=hexMaterial(0x273941,{metalness:.2}), houseMat=hexMaterial(0xc0a780), doorMat=hexMaterial(0x5a4635), trunkMat=hexMaterial(0x6f5238), leafMat=hexMaterial(0x3c6548);
-function addBuilding(x,z,w,h,d,kind="city"){
- const mat=kind==="city"?cityMats[Math.floor(Math.random()*cityMats.length)]:kind==="warehouse"?warehouseMat:houseMat;
- const b=addMesh(new THREE.BoxGeometry(w,h,d),mat,x,h/2,z);solids.push({x,z,hx:w/2+.55,hz:d/2+.55});
- if(kind==="warehouse"){const roof=addMesh(new THREE.BoxGeometry(w+1,.5,d+1),roofMat,x,h+.15,z);roof.castShadow=true;const door=addMesh(new THREE.BoxGeometry(Math.min(7,w*.3),Math.min(6,h*.55),.18),doorMat,x,h*.3,z+d/2+.11);return b}
- if(kind==="city"){if(h>18){const crown=addMesh(new THREE.BoxGeometry(w*.76,.7,d*.76),hexMaterial(0xb4bbb5),x,h+.25,z);if(Math.random()>.45)addMesh(new THREE.BoxGeometry(w*.24,1.5,d*.24),roofMat,x,h+1.1,z)}}
- else {const roof=addMesh(new THREE.ConeGeometry(Math.max(w,d)*.72,Math.max(2,h*.45),4),hexMaterial(0x9c6547),x,h+Math.max(1,h*.2),z);roof.rotation.y=Math.PI/4;addMesh(new THREE.BoxGeometry(.8,1.8,.12),doorMat,x,.9,z+d/2+.09);if(Math.random()>.3)addMesh(new THREE.BoxGeometry(.9,.75,.12),windowMat,x-w*.25,h*.6,z+d/2+.1)}
- return b
+function makeBuildingGeometry(w,h,d,corner=1.25){
+ const r=Math.max(.25,Math.min(corner,w*.16,d*.16)),s=new THREE.Shape();
+ s.moveTo(-w/2+r,-d/2);s.lineTo(w/2-r,-d/2);s.quadraticCurveTo(w/2,-d/2,w/2,-d/2+r);
+ s.lineTo(w/2,d/2-r);s.quadraticCurveTo(w/2,d/2,w/2-r,d/2);
+ s.lineTo(-w/2+r,d/2);s.quadraticCurveTo(-w/2,d/2,-w/2,d/2-r);
+ s.lineTo(-w/2,-d/2+r);s.quadraticCurveTo(-w/2,-d/2,-w/2+r,-d/2);
+ const geo=new THREE.ExtrudeGeometry(s,{depth:h,steps:1,bevelEnabled:true,bevelThickness:.12,bevelSize:.12,bevelSegments:2,curveSegments:5});
+ geo.rotateX(-Math.PI/2);geo.computeVertexNormals();return geo
 }
-function addTree(x,z,scale=1){const trunk=addMesh(new THREE.CylinderGeometry(.3*scale,.45*scale,2*scale,5),trunkMat,x,scale,z);const crown=addMesh(new THREE.ConeGeometry(1.6*scale,4.1*scale,6),leafMat,x,3*scale,z);crown.castShadow=true}
+function addBuilding(x,z,w,h,d,kind="city"){
+ const facade=kind==="city"?cityMats[Math.floor(Math.random()*cityMats.length)]:kind==="warehouse"?warehouseMat:houseMat;
+ const roof=kind==="house"?hexMaterial(0x8c7860):roofMat;
+ const body=addMesh(makeBuildingGeometry(w,h,d,kind==="city"?1.4:.8),[roof,facade],x,0,z);
+ solids.push({x,z,hx:w/2+.65,hz:d/2+.65});
+ const ledgeMat=hexMaterial(kind==="house"?0xb7a58a:0x9b9e99,{roughness:.94});
+ if(kind==="city"){
+  const floorH=3.2,floors=Math.max(3,Math.floor(h/floorH));
+  for(let f=1;f<floors;f++){
+   const y=Math.min(h-.4,f*floorH);
+   for(const side of [-1,1]){
+    addMesh(new THREE.BoxGeometry(w+.22,.10,.18),ledgeMat,x,y,z+side*(d/2+.07));
+    addMesh(new THREE.BoxGeometry(.18,.10,d+.22),ledgeMat,x+side*(w/2+.07),y,z);
+   }
+  }
+  for(const side of [-1,1]){
+   addMesh(new THREE.BoxGeometry(w,.42,.34),ledgeMat,x,h+.13,z+side*(d/2-.1));
+   addMesh(new THREE.BoxGeometry(.34,.42,d),ledgeMat,x+side*(w/2-.1),h+.13,z);
+  }
+  for(let i=0;i<Math.min(3,Math.max(1,Math.floor(w/8)));i++){
+   const ux=x-w*.25+i*w*.25;
+   addMesh(new THREE.BoxGeometry(1.35,.85,1.15),hexMaterial(0x5e6867),ux,h+.58,z);
+   addMesh(new THREE.CylinderGeometry(.07,.07,.65,8),hexMaterial(0x454e4b),ux,h+1.27,z+.22);
+  }
+ }else if(kind==="warehouse"){
+  addMesh(new THREE.BoxGeometry(w+.5,.28,d+.5),roofMat,x,h+.08,z);
+  const ribs=Math.max(5,Math.floor(w/3));
+  for(let i=0;i<ribs;i++)addMesh(new THREE.BoxGeometry(.07,.11,d+.1),ledgeMat,x-w/2+(i+.5)*w/ribs,h+.28,z);
+  const doorW=Math.min(6,w*.33),doorH=Math.min(6,h*.62);
+  addMesh(new THREE.BoxGeometry(doorW+.35,doorH+.35,.18),ledgeMat,x,h-doorH/2,z+d/2+.11);
+  addMesh(new THREE.BoxGeometry(doorW,doorH,.2),doorMat,x,h-doorH/2,z+d/2+.2);
+ }else{
+  for(const side of [-1,1]){
+   addMesh(new THREE.BoxGeometry(w+.2,.55,.28),ledgeMat,x,h+.12,z+side*(d/2-.08));
+   addMesh(new THREE.BoxGeometry(.28,.55,d),ledgeMat,x+side*(w/2-.08),h+.12,z);
+  }
+  const front=z+d/2+.12,doorW=Math.min(1.5,w*.18),doorH=Math.min(2.7,h*.62);
+  addMesh(new THREE.BoxGeometry(doorW+.16,doorH+.12,.14),ledgeMat,x,doorH/2,front);
+  addMesh(new THREE.BoxGeometry(doorW,doorH,.16),doorMat,x,doorH/2,front+.045);
+  for(const side of [-1,1]){
+   const wx=x+side*w*.27,wy=h*.57,ww=Math.min(1.45,w*.18),wh=1.05;
+   addMesh(new THREE.BoxGeometry(ww+.14,wh+.14,.13),ledgeMat,wx,wy,front);
+   addMesh(new THREE.BoxGeometry(ww,wh,.15),windowMat,wx,wy,front+.04);
+   addMesh(new THREE.BoxGeometry(.06,wh,.05),ledgeMat,wx,wy,front+.13);
+   addMesh(new THREE.BoxGeometry(ww,.06,.05),ledgeMat,wx,wy,front+.13);
+  }
+  addMesh(new THREE.BoxGeometry(w*.42,.18,d*.36),hexMaterial(0x756352),x,h+.43,z);
+  addMesh(new THREE.CylinderGeometry(.45,.45,.85,10),hexMaterial(0xaaa99a),x+w*.24,h+.85,z-d*.16);
+ }
+ return body
+}
+
+function addTree(x,z,scale=1){
+ addMesh(new THREE.CylinderGeometry(.18*scale,.3*scale,2.8*scale,7),trunkMat,x,1.4*scale,z);
+ const a=addMesh(new THREE.SphereGeometry(1,10,8),leafMat,x,2.65*scale,z);a.scale.set(1.35*scale,1.1*scale,1.18*scale);
+ const b=addMesh(new THREE.SphereGeometry(1,10,8),leafMat,x-.62*scale,2.85*scale,z+.22*scale);b.scale.set(.83*scale,.86*scale,.82*scale);
+ const c=addMesh(new THREE.SphereGeometry(1,10,8),leafMat,x+.62*scale,2.95*scale,z-.18*scale);c.scale.set(.82*scale,.9*scale,.83*scale)
+}
+
 function addRock(x,z,sx,sy,sz,color=0x8c8577){const r=addMesh(new THREE.DodecahedronGeometry(1,0),hexMaterial(color),x,sy*.45,z);r.scale.set(sx,sy,sz);r.rotation.set(Math.random(),Math.random(),Math.random())}
 function addLabel(text,x,z,color="#f4db98"){const c=document.createElement("canvas");c.width=512;c.height=128;const g=c.getContext("2d");g.fillStyle="rgba(10,17,20,.76)";g.fillRect(4,8,504,112);g.strokeStyle=color;g.lineWidth=4;g.strokeRect(4,8,504,112);g.font="900 43px system-ui";g.textAlign="center";g.textBaseline="middle";g.fillStyle=color;g.fillText(text.toUpperCase(),256,65);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));spr.position.set(x,29,z);spr.scale.set(44,11,1);scene.add(spr);labels.push(spr)}
 function createWorld(){
@@ -177,10 +276,28 @@ function createWorld(){
  for(let i=0;i<14;i++){const x=240+Math.random()*260,z=-170+Math.random()*310;const dune=addMesh(new THREE.SphereGeometry(1,10,7),hexMaterial(i%2?0xc8ad78:0xbda06f),x,2+Math.random()*3,z);dune.scale.set(15+Math.random()*22,3+Math.random()*4,13+Math.random()*20)}
  for(let i=0;i<9;i++)addRock(365+(i%3)*22,-60+Math.floor(i/3)*20,4,2.2,5,0x857963);
  // Mountain chain, pine-like trees and reservoir.
- for(let i=0;i<12;i++){const x=140+i*24,z=-400+Math.sin(i*.65)*42;const h=65+Math.random()*95;const m=addMesh(new THREE.ConeGeometry(28+Math.random()*16,h,7),hexMaterial(i%2?0x677a70:0x798879),x,h/2-4,z);m.rotation.z=(Math.random()-.5)*.12}
+ for(let i=0;i<15;i++){
+  const x=125+i*23,z=-397+Math.sin(i*.65)*48,h=64+Math.random()*92,rad=25+Math.random()*18;
+  const geo=new THREE.IcosahedronGeometry(1,2),p=geo.attributes.position;
+  for(let v=0;v<p.count;v++){
+   const vx=p.getX(v),vy=p.getY(v),vz=p.getZ(v),rough=1+.12*Math.sin(vx*13+vz*7+i)+.06*Math.cos(vy*17-vx*5);
+   p.setXYZ(v,vx*rough,vy*rough,vz*rough)
+  }
+  geo.computeVertexNormals();geo.scale(rad,h*.53,rad*.82);
+  const mat=hexMaterial(i%3===0?0x66746a:i%3===1?0x7c8675:0x8c917f,{roughness:1});
+  const m=addMesh(geo,mat,x,h*.39-2,z);m.rotation.y=i*.37;m.rotation.z=(Math.random()-.5)*.1;
+ }
  const water=addMesh(new THREE.CircleGeometry(73,40),new THREE.MeshStandardMaterial({color:0x4d9d9d,roughness:.2,metalness:.15,transparent:true,opacity:.94}),285,1,-290);water.rotation.x=-Math.PI/2;
  const riverPoints=[new THREE.Vector3(214,1.15,-395),new THREE.Vector3(175,1.15,-275),new THREE.Vector3(130,1.15,-165),new THREE.Vector3(80,1.15,-52),new THREE.Vector3(40,1.15,45),new THREE.Vector3(-10,1.15,142),new THREE.Vector3(-74,1.15,250),new THREE.Vector3(-140,1.15,385)];
- const riverCurve=new THREE.CatmullRomCurve3(riverPoints);const river=addMesh(new THREE.TubeGeometry(riverCurve,90,7,8,false),new THREE.MeshStandardMaterial({color:0x539e9c,roughness:.25,metalness:.05}),0,0,0);river.castShadow=false;
+ const riverCurve=new THREE.CatmullRomCurve3(riverPoints),riverSamples=riverCurve.getPoints(100),riverVerts=[],riverIndices=[];
+ for(let i=0;i<riverSamples.length;i++){
+  const prev=riverSamples[Math.max(0,i-1)],next=riverSamples[Math.min(riverSamples.length-1,i+1)];
+  const tangent=new THREE.Vector3(next.x-prev.x,0,next.z-prev.z).normalize(),side=new THREE.Vector3(-tangent.z,0,tangent.x).multiplyScalar(6.2),point=riverSamples[i];
+  riverVerts.push(point.x+side.x,.20,point.z+side.z,point.x-side.x,.20,point.z-side.z);
+  if(i<riverSamples.length-1){const n=i*2;riverIndices.push(n,n+1,n+2,n+1,n+3,n+2)}
+ }
+ const riverGeo=new THREE.BufferGeometry();riverGeo.setAttribute("position",new THREE.Float32BufferAttribute(riverVerts,3));riverGeo.setIndex(riverIndices);riverGeo.computeVertexNormals();
+ const river=addMesh(riverGeo,new THREE.MeshStandardMaterial({color:0x539e9c,roughness:.28,metalness:.03,transparent:true,opacity:.93,side:THREE.DoubleSide}),0,0,0);river.castShadow=false;
  // Bridges crossing the river.
  [[91,-77,120,-77],[15,88,42,88],[-43,199,-15,199]].forEach(p=>addRoad(...p,20,0x69675e));
  // Ancient fortress on the southern rise.
@@ -203,19 +320,54 @@ function createWorld(){
 function setZoneRadius(radius){zoneRadius=radius;if(zoneRing){zoneRing.scale.set(radius,radius,1);zoneDisc.scale.set(radius,radius,1)}}
 function makePerson(color=skinColors[selectedSkin],isBot=false){
  const g=new THREE.Group();
- const torso=addMesh(new THREE.BoxGeometry(.9,1.2,.48),hexMaterial(color,{roughness:.82}),0,1.4,0,g);
- const vest=addMesh(new THREE.BoxGeometry(.96,.54,.51),hexMaterial(isBot?0x4e5851:0x343e3b),0,1.45,-.015,g);
- const head=addMesh(new THREE.SphereGeometry(.28,10,8),hexMaterial(0xc39a79),0,2.25,0,g);
- const cap=addMesh(new THREE.SphereGeometry(.3,10,5,0,Math.PI*2,0,Math.PI/2),hexMaterial(isBot?0x3a4640:0x45564c),0,2.39,0,g);cap.scale.y=.55;
- for(let side of [-1,1]){
-  const arm=addMesh(new THREE.BoxGeometry(.25,.9,.3),hexMaterial(color),side*.63,1.45,0,g);arm.rotation.z=side*-.12;
-  const leg=addMesh(new THREE.BoxGeometry(.32,.8,.36),hexMaterial(0x3e4845),side*.24,.42,0,g);
-  addMesh(new THREE.BoxGeometry(.34,.18,.52),hexMaterial(0x2a302f),side*.24,.09,-.04,g);
+ const uniform=hexMaterial(color,{roughness:.95}),pants=hexMaterial(isBot?0x454c49:0x343d3a,{roughness:.97});
+ const armor=hexMaterial(isBot?0x4b514b:0x28332f,{roughness:.86}),armorEdge=hexMaterial(0x7a8176,{roughness:.9});
+ const skin=hexMaterial(0xb98c6b,{roughness:.95}),bootMat=hexMaterial(0x202624,{roughness:.9});
+ const gear=hexMaterial(isBot?0x596354:0x414f42,{roughness:.94}),darkMetal=hexMaterial(0x20282a,{roughness:.56,metalness:.35});
+ const metal=hexMaterial(0x596462,{roughness:.5,metalness:.35});
+ const torso=addMesh(new THREE.CapsuleGeometry(.34,.63,5,10),uniform,0,1.47,0,g);torso.scale.set(1.05,1,.82);
+ const vest=addMesh(new THREE.CapsuleGeometry(.32,.4,4,10),armor,0,1.52,-.025,g);vest.scale.set(1.12,1,.9);
+ addMesh(new THREE.CylinderGeometry(.095,.11,.16,10),skin,0,1.99,0,g);
+ addMesh(new THREE.CylinderGeometry(.14,.15,.14,10),armor,0,1.96,0,g);
+ const head=addMesh(new THREE.SphereGeometry(.235,18,14),skin,0,2.14,-.015,g);head.scale.set(.93,1.05,.92);
+ const helmetMat=hexMaterial(isBot?0x38453d:0x3d4d40,{roughness:.8,metalness:.08});
+ const helmet=addMesh(new THREE.SphereGeometry(.285,18,12,0,Math.PI*2,0,Math.PI*.63),helmetMat,0,2.34,-.015,g);helmet.scale.set(1.04,.88,1.02);
+ addMesh(new THREE.CylinderGeometry(.285,.30,.055,18),helmetMat,0,2.29,-.01,g);
+ addMesh(new THREE.BoxGeometry(.12,.08,.11),darkMetal,0,2.34,-.277,g);
+ for(const side of [-1,1]){
+  const pad=addMesh(new THREE.SphereGeometry(1,12,8),armor,side*.405,1.73,0,g);pad.scale.set(.22,.16,.22);
+  const strap=addMesh(new THREE.BoxGeometry(.075,.47,.08),armorEdge,side*.245,1.62,-.275,g);strap.rotation.z=side*-.13;
  }
- const pack=addMesh(new THREE.BoxGeometry(.48,.7,.25),hexMaterial(isBot?0x626451:0x505e4c),0,1.45,.33,g);
- 
+ addMesh(new THREE.BoxGeometry(.48,.24,.055),armorEdge,0,1.66,-.323,g);
+ for(let i=0;i<3;i++){addMesh(new THREE.BoxGeometry(.135,.19,.11),gear,(i-1)*.17,1.36,-.34,g);addMesh(new THREE.BoxGeometry(.095,.025,.025),armorEdge,(i-1)*.17,1.39,-.402,g)}
+ addMesh(new THREE.BoxGeometry(.72,.08,.46),darkMetal,0,1.08,0,g);
+ const pack=addMesh(new THREE.CapsuleGeometry(.19,.42,4,9),gear,0,1.46,.30,g);pack.scale.set(.88,1,.66);
+ addMesh(new THREE.BoxGeometry(.22,.26,.06),armorEdge,0,1.67,.48,g);
+ const leftArm=new THREE.Group();leftArm.position.set(-.43,1.72,0);g.add(leftArm);
+ addMesh(new THREE.CapsuleGeometry(.125,.48,4,9),uniform,0,-.25,-.055,leftArm);addMesh(new THREE.SphereGeometry(.125,10,8),skin,0,-.51,-.09,leftArm);
+ const rightArm=new THREE.Group();rightArm.position.set(.43,1.72,0);g.add(rightArm);
+ addMesh(new THREE.CapsuleGeometry(.125,.48,4,9),uniform,0,-.25,-.055,rightArm);addMesh(new THREE.SphereGeometry(.125,10,8),skin,0,-.51,-.09,rightArm);
+ leftArm.rotation.x=-.22;rightArm.rotation.x=-.34;
+ const leftLeg=new THREE.Group();leftLeg.position.set(-.19,.82,0);g.add(leftLeg);
+ addMesh(new THREE.CapsuleGeometry(.135,.48,4,9),pants,0,-.25,0,leftLeg);
+ const leftBoot=addMesh(new THREE.SphereGeometry(1,10,8),bootMat,0,-.57,-.07,leftLeg);leftBoot.scale.set(.16,.12,.26);
+ const rightLeg=new THREE.Group();rightLeg.position.set(.19,.82,0);g.add(rightLeg);
+ addMesh(new THREE.CapsuleGeometry(.135,.48,4,9),pants,0,-.25,0,rightLeg);
+ const rightBoot=addMesh(new THREE.SphereGeometry(1,10,8),bootMat,0,-.57,-.07,rightLeg);rightBoot.scale.set(.16,.12,.26);
+ const rifle=new THREE.Group();rifle.position.set(.42,1.34,-.28);g.add(rifle);
+ addMesh(new THREE.BoxGeometry(.13,.13,.48),darkMetal,0,0,-.30,rifle);
+ addMesh(new THREE.BoxGeometry(.12,.11,.27),gear,0,.015,-.05,rifle);
+ addMesh(new THREE.BoxGeometry(.11,.19,.13),darkMetal,0,-.14,-.31,rifle);
+ addMesh(new THREE.BoxGeometry(.075,.22,.10),metal,0,-.12,-.32,rifle);
+ const barrel=addMesh(new THREE.CylinderGeometry(.033,.04,.42,8),darkMetal,0,.01,-.70,rifle);barrel.rotation.x=Math.PI/2;
+ const muzzle=addMesh(new THREE.CylinderGeometry(.044,.044,.08,8),metal,0,.01,-.92,rifle);muzzle.rotation.x=Math.PI/2;
+ addMesh(new THREE.BoxGeometry(.105,.075,.16),darkMetal,0,.105,-.35,rifle);
+ addMesh(new THREE.BoxGeometry(.09,.12,.11),gear,0,.16,-.18,rifle);
+ addMesh(new THREE.BoxGeometry(.10,.12,.25),gear,0,-.01,.02,rifle);
+ g.userData.rig={leftArm,rightArm,leftLeg,rightLeg};
  return g
 }
+
 function createPlayer(){player.group=makePerson();player.group.position.copy(player.pos);scene.add(player.group)}
 function createLoot(){
  const spots=[[-235,35],[-170,-95],[-290,-300],[-45,-285],[37,72],[65,125],[260,205],[350,-26],[275,-304],[60,268],[-60,170],[205,5]];
@@ -230,6 +382,8 @@ function updatePlayer(dt){
  let strafe=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+touch.x;
  const mag=Math.hypot(forward,strafe);if(mag>1){forward/=mag;strafe/=mag}
  player.moving=mag>.07;
+ const rig=player.group.userData.rig;
+ if(rig){const swing=player.moving?Math.sin(performance.now()*.012)*.48:0;rig.leftLeg.rotation.x=swing;rig.rightLeg.rotation.x=-swing;rig.leftArm.rotation.x=-.22-swing*.65;rig.rightArm.rotation.x=-.34+swing*.55}
  const speed=(keys.ShiftLeft||keys.ShiftRight?10:6)*(player.crouched ? .48 : 1);
  const dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*strafe)*speed*dt;
  const dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*strafe)*speed*dt;
@@ -243,21 +397,47 @@ function updatePlayer(dt){
 function updateBots(dt){
  if(!gameActive||paused)return;
  for(const bot of bots){if(!bot.active)continue;const p=bot.group.position;const dx=player.group.position.x-p.x,dz=player.group.position.z-p.z,d=Math.hypot(dx,dz);bot.walkPhase+=dt*5;
+  const rig=bot.group.userData.rig,swing=d>15?Math.sin(bot.walkPhase)*.5:0;
+  if(rig){rig.leftLeg.rotation.x=swing;rig.rightLeg.rotation.x=-swing;rig.leftArm.rotation.x=-.22-swing*.6;rig.rightArm.rotation.x=-.34+swing*.5}
   if(d>15){const sp=2.2*dt;if(!blocked(p.x+dx/d*sp,p.z))p.x+=dx/d*sp;if(!blocked(p.x,p.z+dz/d*sp))p.z+=dz/d*sp;bot.group.rotation.y=Math.atan2(dx,dz)}else{bot.group.rotation.y=Math.atan2(dx,dz)}
   bot.group.position.y=Math.sin(bot.walkPhase)*.025;
   bot.tagCooldown-=dt;if(d<3.8&&bot.tagCooldown<=0){bot.tagCooldown=2.6+Math.random()*1.6;const damage=5+Math.random()*4;state.armor=Math.max(0,state.armor-damage*.5);state.health=Math.max(0,state.health-damage*(state.armor>0 ? .5 : 1));if(state.health<=0)endGame(false);else updateHUD()}
  }
 }
-function tagOpponent(){
+function shootWeapon(){
  if(!gameActive||paused)return;
- const now=performance.now()/1000;if(now-lastTag<.55)return;lastTag=now;
- const dir=camera.getWorldDirection(new THREE.Vector3());let nearest=null,best=17;
- for(const bot of bots){if(!bot.active)continue;const target=bot.group.position.clone().add(new THREE.Vector3(0,1.5,0));const offset=target.clone().sub(camera.position);const distance=offset.length();const facing=dir.dot(offset.normalize());if(distance<best&&facing>.91){nearest=bot;best=distance}}
- if(!nearest){showToast("Raqib yaqin va ko'rinadigan joyda bo'lsa, uni belgilash mumkin.");return}
- nearest.active=false;scene.remove(nearest.group);state.kills++;say("RAQIB BELGILANDI");
- if(bots.every(b=>!b.active))endGame(true);
- updateHUD();playBeep(620,.06,.7);
+ const now=performance.now()/1000;if(now-lastTag<.19)return;lastTag=now;
+ if(state.ammo<=0){showToast("O‘Q TUGADI — R TUGMASI BILAN QAYTA O‘QLA",1100);playBeep(130,.05,.2);return}
+ state.ammo--;const dir=camera.getWorldDirection(new THREE.Vector3()).normalize(),origin=camera.position.clone();
+ let nearest=null,bestDepth=115,hitPoint=origin.clone().addScaledVector(dir,95);
+ for(const bot of bots){
+  if(!bot.active)continue;
+  const target=bot.group.position.clone().add(new THREE.Vector3(0,1.36,0)),offset=target.clone().sub(origin),depth=offset.dot(dir);
+  if(depth<=0||depth>bestDepth)continue;
+  const perpendicular=offset.addScaledVector(dir,-depth).length();
+  if(perpendicular<1.65){nearest=bot;bestDepth=depth;hitPoint=target}
+ }
+ const tracerGeo=new THREE.BufferGeometry().setFromPoints([origin,hitPoint]);
+ const tracer=new THREE.Line(tracerGeo,new THREE.LineBasicMaterial({color:nearest?0xffd58b:0xd9e2d7,transparent:true,opacity:.85}));
+ tracer.frustumCulled=false;scene.add(tracer);setTimeout(()=>{scene.remove(tracer);tracerGeo.dispose();tracer.material.dispose()},85);
+ playBeep(125,.035,.2);
+ if(nearest){
+  nearest.health-=36;$("crosshair").classList.add("hit");setTimeout(()=>$("crosshair").classList.remove("hit"),130);
+  if(nearest.health<=0){
+   nearest.active=false;scene.remove(nearest.group);state.kills++;say("RAQIB YENGILDI",900);
+   if(bots.every(b=>!b.active))endGame(true);
+  }else say("NISHONGA TEGDI",450)
+ }else if(state.ammo%5===0)showToast("O‘Q NISHONGA TEGMADI",550);
+ updateHUD()
 }
+function reloadWeapon(){
+ if(!gameActive||paused)return;
+ if(state.ammo>=30){showToast("O‘Q TO‘LA",800);return}
+ if(state.reserveAmmo<=0){showToast("ZAXIRADA O‘Q QOLMAGAN",1000);return}
+ const amount=Math.min(30-state.ammo,state.reserveAmmo);state.ammo+=amount;state.reserveAmmo-=amount;
+ playBeep(330,.05,.25);updateHUD();showToast("QAYTA O‘QLANDI",900)
+}
+
 function scanPulse(){
  if(!gameActive||paused)return;
  if(state.scanCooldown>0){showToast("Skan tayyor bo'lishi uchun biroz kut");return}
@@ -278,12 +458,12 @@ function updateHUD(){
  $("kills").textContent=String(state.kills).padStart(2,"0");
  $("health-number").textContent=Math.ceil(state.health);$("health-fill").style.width=Math.max(0,state.health)+"%";
  $("armor-number").textContent=Math.ceil(state.armor);$("armor-fill").style.width=Math.max(0,state.armor)+"%";
- $("signal-count").textContent=String(state.scanCharges).padStart(2,"0");$("tags").textContent=String(state.kills).padStart(2,"0");$("signal-name").textContent="SIGNAL MARKER";
+ $("signal-count").textContent=String(state.ammo).padStart(2,"0");$("tags").textContent=String(state.reserveAmmo).padStart(3,"0");$("signal-name").textContent="UZ-7 · KARBIN";
  let nearest=null,d=999;for(const item of lootItems)if(!item.userData.used){const dd=item.position.distanceTo(player.group?player.group.position:new THREE.Vector3());if(dd<d){d=dd;nearest=item}}
  $("nearby-hint").textContent=nearest&&d<9?"F / OLISH — YONINGDA SIGNAL":"Yaqindagi signalni F bilan ol"
 }
 function endGame(won){gameActive=false;paused=true;if(document.pointerLockElement)document.exitPointerLock();$("main-menu").style.display="flex";$("play-btn").textContent=won?"↻ QAYTA O'YNASH":"↻ QAYTA URINISH";$("main-menu").querySelector(".hero-title").innerHTML=won?"G'ALABA<br><span>UZB ROYALE</span>":"O'YIN<br><span>TUGADI</span>";$("main-menu").querySelector(".hero-sub").textContent=won?"Ajoyib! Barcha dushmanlar yo'q qilindi. Prototip sinovi tugadi.":"Qahramon yiqildi. Yana bir bor harakat qilib ko'r.";say(won?"G'ALABA!":"O'YIN TUGADI",3500)}
-function startGame(){if(!worldReady)return;gameActive=true;paused=false;menuOpen=false;zoneElapsed=0;zoneStage=0;setZoneRadius(500);state.health=100;state.armor=0;state.kills=0;state.scanCharges=2;state.scanCooldown=0;lastTag=0;scanUntil=0;player.group.position.set(5,0,48);player.pos.copy(player.group.position);player.velY=0;player.onGround=true;player.crouched=false;yaw=0;pitch=.18;for(const b of bots){b.active=true;b.health=100;const angle=(b.id/8)*Math.PI*2+.4;const distance=150+(b.id%3)*50;b.group.position.set(Math.cos(angle)*distance,0,Math.sin(angle)*distance);scene.add(b.group)}for(const item of lootItems){item.userData.used=false;scene.add(item)}$("main-menu").style.display="none";$("modal").style.display="none";$("map-overlay").style.display="none";document.body.classList.add("playing");updateHUD();say("OMAD — OMON QOL!");if(window.matchMedia("(pointer:fine)").matches&&canvas.requestPointerLock){try{canvas.requestPointerLock()}catch(e){}}}
+function startGame(){if(!worldReady)return;gameActive=true;paused=false;menuOpen=false;zoneElapsed=0;zoneStage=0;setZoneRadius(500);state.health=100;state.armor=0;state.kills=0;state.scanCharges=2;state.scanCooldown=0;state.ammo=30;state.reserveAmmo=120;lastTag=0;scanUntil=0;player.group.position.set(5,0,48);player.pos.copy(player.group.position);player.velY=0;player.onGround=true;player.crouched=false;yaw=0;pitch=.18;for(const b of bots){b.active=true;b.health=100;const angle=(b.id/8)*Math.PI*2+.4;const distance=150+(b.id%3)*50;b.group.position.set(Math.cos(angle)*distance,0,Math.sin(angle)*distance);scene.add(b.group)}for(const item of lootItems){item.userData.used=false;scene.add(item)}$("main-menu").style.display="none";$("modal").style.display="none";$("map-overlay").style.display="none";document.body.classList.add("playing");updateHUD();say("OMAD — OMON QOL!");if(window.matchMedia("(pointer:fine)").matches&&canvas.requestPointerLock){try{canvas.requestPointerLock()}catch(e){}}}
 function togglePause(){if(!gameActive)return;paused=!paused;if(paused){$("main-menu").style.display="flex";$("main-menu").querySelector(".hero-title").innerHTML="JANG<br><span>PAUZADA</span>";$("main-menu").querySelector(".hero-sub").textContent="Davom etish uchun jangni boshlash tugmasi o'rniga pastdagi davom etishni tanla.";const btn=$("play-btn");btn.textContent="▶ DAVOM ETISH";btn.onclick=resumeGame;$("settings-btn").onclick=()=>openSettings(true);$("loadout-btn").style.display="none";if(document.pointerLockElement)document.exitPointerLock()}else resumeGame()}
 function resumeGame(){if(!gameActive)return;paused=false;$("main-menu").style.display="none";$("play-btn").textContent="▶ JANGNI BOSHLASH";$("play-btn").onclick=startGame;$("settings-btn").onclick=()=>openSettings(false);$("loadout-btn").style.display="";if(window.matchMedia("(pointer:fine)").matches&&canvas.requestPointerLock){try{canvas.requestPointerLock()}catch(e){}}}
 function openSettings(fromPause=false){menuStateBeforePause=fromPause;$("modal-title").textContent="SOZLAMALAR";$("settings-content").hidden=false;$("loadout-content").hidden=true;$("back-menu").style.display=fromPause?"inline-block":"none";$("modal").style.display="grid";$("quality").value=settings.quality;$("fps-cap").value=String(settings.fpsCap);$("show-fps").value=settings.showFPS?"on":"off";$("sensitivity").value=settings.sensitivity;$("volume").value=settings.volume}
@@ -309,9 +489,9 @@ function bindUI(){
  document.querySelectorAll(".skin").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".skin").forEach(x=>x.classList.toggle("active",x===btn));selectedSkin=Number(btn.dataset.skin)}));
  $("apply-skin").addEventListener("click",()=>{if(player.group){scene.remove(player.group);player.group=makePerson(skinColors[selectedSkin]);player.group.position.copy(player.pos);scene.add(player.group)}closeModal();showToast("Qahramon kiyimi tanlandi")});
  $("close-map").addEventListener("click",()=>mapToggle(false));
- window.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="Space"&&gameActive&&!paused&&player.onGround){player.velY=7.3;player.onGround=false}if(e.code==="KeyR")scanPulse();if(e.code==="KeyF")interact();if(e.code==="KeyM"&&gameActive)mapToggle($("map-overlay").style.display!=="grid");if(e.code==="Escape"&&gameActive){if($("map-overlay").style.display==="grid")mapToggle(false);else if($("modal").style.display==="grid")closeModal();else togglePause()}});
+ window.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="Space"&&gameActive&&!paused&&player.onGround){player.velY=7.3;player.onGround=false}if(e.code==="KeyR")reloadWeapon();if(e.code==="KeyG")scanPulse();if(e.code==="KeyF")interact();if(e.code==="KeyM"&&gameActive)mapToggle($("map-overlay").style.display!=="grid");if(e.code==="Escape"&&gameActive){if($("map-overlay").style.display==="grid")mapToggle(false);else if($("modal").style.display==="grid")closeModal();else togglePause()}});
  window.addEventListener("keyup",e=>{keys[e.code]=false});
- canvas.addEventListener("mousedown",e=>{mouseDown=true;lastMouseX=e.clientX;lastMouseY=e.clientY;if(gameActive&&!paused){if(document.pointerLockElement!==canvas){if(e.button===0)tagOpponent()}else if(e.button===0)tagOpponent()}});
+ canvas.addEventListener("mousedown",e=>{mouseDown=true;lastMouseX=e.clientX;lastMouseY=e.clientY;if(gameActive&&!paused){if(document.pointerLockElement!==canvas){if(e.button===0)shootWeapon()}else if(e.button===0)shootWeapon()}});
  window.addEventListener("mouseup",()=>mouseDown=false);
  window.addEventListener("mousemove",e=>{if(!gameActive||paused)return;if(document.pointerLockElement===canvas){yaw-=e.movementX*.0024*settings.sensitivity;pitch=Math.max(-.08,Math.min(.72,pitch+e.movementY*.0018*settings.sensitivity))}else if(mouseDown){yaw-=(e.clientX-lastMouseX)*.004*settings.sensitivity;pitch=Math.max(-.08,Math.min(.72,pitch+(e.clientY-lastMouseY)*.003*settings.sensitivity));lastMouseX=e.clientX;lastMouseY=e.clientY}});
  canvas.addEventListener("contextmenu",e=>e.preventDefault());
@@ -322,7 +502,7 @@ function bindUI(){
  $("look-zone").addEventListener("pointerdown",e=>{if(e.pointerType==="touch"){touch.lookPointer=e.pointerId;touch.lastX=e.clientX;touch.lastY=e.clientY;$("look-zone").setPointerCapture(e.pointerId)}else{mouseDown=true;lastMouseX=e.clientX;lastMouseY=e.clientY}});
  $("look-zone").addEventListener("pointermove",e=>{if(e.pointerType==="touch"&&e.pointerId===touch.lookPointer){yaw-=(e.clientX-touch.lastX)*.006*settings.sensitivity;pitch=Math.max(-.08,Math.min(.72,pitch+(e.clientY-touch.lastY)*.004*settings.sensitivity));touch.lastX=e.clientX;touch.lastY=e.clientY}});
  $("look-zone").addEventListener("pointerup",e=>{if(e.pointerId===touch.lookPointer)touch.lookPointer=null;mouseDown=false});
- $("touch-tag").addEventListener("pointerdown",e=>{e.preventDefault();tagOpponent()});$("touch-jump").addEventListener("pointerdown",e=>{e.preventDefault();if(player.onGround){player.velY=7.3;player.onGround=false}});
+ $("touch-tag").addEventListener("pointerdown",e=>{e.preventDefault();shootWeapon()});$("touch-jump").addEventListener("pointerdown",e=>{e.preventDefault();if(player.onGround){player.velY=7.3;player.onGround=false}});
  $("touch-scan").addEventListener("pointerdown",e=>{e.preventDefault();scanPulse()});$("touch-use").addEventListener("pointerdown",e=>{e.preventDefault();interact()});$("touch-crouch").addEventListener("pointerdown",e=>{e.preventDefault();player.crouched=!player.crouched;showToast(player.crouched?"Egildi":"Tik turdi")});
  window.addEventListener("resize",()=>{if(camera&&renderer){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight,false);applySettings()}});
 }
