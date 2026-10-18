@@ -1,56 +1,58 @@
 # UZB ROYALE 🇺🇿
 
-O'zbekiston manzaralaridan ilhomlangan original, brauzerda ishlaydigan 3D survival-arena prototipi. Bu ilk **pre-alpha**: bitta o'yinchi, bot-challengerlar, xarita va belgilash (tag) mexanikasi bilan ishlaydigan sinov versiyasi.
+**UZB ROYALE** — O‘zbekiston tabiati va me’morchiligidan ilhomlangan original, brauzerda ishlaydigan 3D battle-royale prototipi. Bu PUBG darajasidagi tayyor mahsulot emas: hozir biz uchinchi shaxs kamerasi, hududlar, bot-raqiblar, qurol otish, o‘q-dori va mobil boshqaruvning ilk o‘ynaladigan poydevorini qurmoqdamiz.
 
-## Ishga tushirish
+## O‘yinni ochish
 
-Loyiha build talab qilmaydi. GitHub Pages orqali joylashtirilgach, sahifani Chrome yoki boshqa zamonaviy brauzerda ochish mumkin. Three.js kutubxonasi internet orqali CDN'dan olinadi.
+- **Jonli demo:** https://bekiuz.github.io/uzb-royale/
+- **Kod:** https://github.com/bekiuz/uzb-royale
 
-### GitHub Pages'ni bir marta yoqish
-1. Repository'da **Settings → Pages** bo'limini oching.
-2. **Build and deployment → Source** ostidan **GitHub Actions** ni tanlang.
-3. **Actions** bo'limiga o'tib, **Deploy UZB ROYALE to GitHub Pages** workflow'ini qayta ishga tushiring (yoki keyingi commitni kuting).
-4. Muvaffaqiyatli deploy'dan keyin URL'ni Actions natijasidan oching. Kutiladigan manzil: `https://bekiuz.github.io/uzb-royale/`.
-
-Har safar `main` branch'ga o'zgarish kiritilganda deploy workflow qayta ishlaydi.
+Loyiha alohida build talab qilmaydi. GitHub Pages orqali joylashtiriladi; Three.js kutubxonasi CDN’dan yuklanadi. Birinchi ochishda internet aloqasi kerak.
 
 ## Boshqaruv
 
 ### Kompyuter
-- **W A S D** — yurish
+- **W / A / S / D** — harakatlanish
 - **Sichqoncha** — kamerani burish
-- **Chap tugma** — yaqin va ko'rinadigan raqibni belgilash (arkada tag mexanikasi)
-- **Shift** — tezroq yurish
+- **Chap tugma** — UZ-7 karbini bilan otish
+- **R** — o‘qni qayta to‘ldirish
+- **Shift** — tez yugurish
 - **Space** — sakrash
-- **R** — skan: raqiblarni minimapda vaqtincha ko'rsatish
-- **F** — yaqin signal kristali yoki tibbiy to'plamni olish
+- **G** — qisqa muddatli skan
+- **F** — yaqin tibbiy to‘plam yoki signal ta’minotini olish
 - **M** — katta xaritani ochish/yopish
 - **Esc** — pauza
 
 ### Telefon
-- Chap joystick — harakat
-- Ekranning o'ng tomonini surish — kamera
-- Tugmalar — raqibni belgilash, sakrash, skan, o'lja olish va egilish
+- Chap joystick — yurish
+- Ekranning o‘ng tomonini surish — kamera
+- **OTISH**, **SAKRASH**, **SKAN**, **OLISH** va **EGILISH** tugmalari
 - Telefonni gorizontal holatda ishlatish tavsiya etiladi.
 
-## Dastlabki prototipda bor
-- 3D muhit: shahar, mahalla, aerodrom, sanoat hududi, paxtazor, cho'l, tog'lar va qal'a.
-- Uchinchi shaxs kamerasi, qahramon harakati va oddiy bot-challengerlar.
-- Yaqin masofali belgilash mexanikasi, signal kristallari, tibbiy to'plamlar.
-- Sog'liq/himoya, minimap, skan va qisqaruvchi zona.
-- Grafik darajasi, FPS chegarasi, sezgirlik va ovoz sozlamalari.
-- Joriy render FPS hisoblagichi; sozlamalar brauzer xotirasida saqlanadi.
+## Prototipda mavjud
 
-## Hozircha yo'q
-- Internet orqali multiplayer va akkauntlar.
-- Haqiqiy server ping'i. Server bo'lmagani uchun HUD'da **OFFLINE** ko'rsatiladi.
-- Yakuniy darajadagi 3D qahramonlar, transportlar, animatsiyalar, to'liq ovoz dizayni va ishlab chiqarishga tayyor anti-cheat.
+- O‘zbekiston muhitidan ilhomlangan aralash xarita: shahar, mahalla, aerodrom, sanoat hududi, paxtazor, cho‘l, tog‘li ko‘l va qadimiy qal’a.
+- Yumshatilgan relyef ranglari, egri daryo tasmasi, notekis tog‘ siluetlari hamda tafsilotliroq me’moriy shakllar.
+- Uchinchi shaxs kamerasi va qurol, dubulg‘a, zirh, ryukzak hamda kapsula shaklli tana qismlariga ega original taktik qahramon modeli.
+- To‘rt xil original rangdagi kiyim varianti.
+- UZ-7 prototip karbini, 30 o‘qlik magazin, zaxira o‘q va qayta to‘ldirish.
+- Bot-raqiblar, bir necha o‘q bilan yengish, sog‘liq va himoya ko‘rsatkichlari.
+- Minimap, keng xarita, ta’minot qutilari va qisqaradigan xavfsiz zona.
+- Grafika darajasi, FPS chegarasi (30/60/90/120), kamera sezgirligi va ovoz sozlamalari.
+- Haqiqiy render FPS ko‘rsatkichi; sozlamalar brauzer xotirasida saqlanadi.
 
-Keyingi bosqich: xarita to'qnashuvlarini yaxshilash, hududlarni boyitish, animatsiya va transport, optimallashtirish; keyin alohida multiplayer arxitekturasi.
+## Hali mavjud emas
+
+- Internet orqali multiplayer, xona/matchmaking va 100 o‘yinchili jang.
+- Haqiqiy server ping’i. Server ulanmagani uchun HUD’da **OFFLINE** ko‘rsatiladi.
+- Parashyutdan tushish, boshqariladigan transportlar, to‘liq inventar va loot tizimi.
+- Ishlab chiqarish darajasidagi 3D modellar, animatsiyalar, tovushlar va anti-cheat.
+- PUBG Mobile’ning aynan nusxasi. UZB ROYALE o‘z nomi, xarita konsepsiyasi va original resurslariga ega bo‘lishi kerak.
 
 ## Texnologiya
-- HTML/CSS/JavaScript
-- Three.js (CDN orqali)
-- GitHub Pages
 
-Xarita va personajlar prototip uchun kod yordamida yaratiladi; boshqa o'yinlarning tayyor xaritalari, logotiplari yoki kiyim resurslari ishlatilmaydi.
+- HTML, CSS va JavaScript
+- Three.js (CDN)
+- GitHub Actions + GitHub Pages
+
+Keyingi bosqich: o‘yin va kamera boshqaruvini sinash, grafika unumdorligini optimallashtirish, xarita to‘qnashuvlarini yaxshilash, qurol/animatsiya tizimini boyitish va keyin alohida multiplayer serverini loyihalash.
