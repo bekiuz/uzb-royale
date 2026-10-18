@@ -121,6 +121,37 @@ const zoneCenter = new THREE.Vector2(0,0);
 let zoneRing, zoneDisc, minimap, bigmap, toastTimerId, menuStateBeforePause = null;
 
 function showToast(text, duration=2200){ $("toast").textContent=text; $("toast").style.display="block"; clearTimeout(toastTimerId); toastTimerId=setTimeout(()=>$("toast").style.display="none",duration); }
+function getAudioContext(){
+ try{if(!audioContext){const AudioCtor=window.AudioContext||window.webkitAudioContext;if(!AudioCtor)return null;audioContext=new AudioCtor()}if(audioContext.state==="suspended")audioContext.resume().catch(()=>{});return audioContext}catch(e){return null}
+}
+function playBeep(frequency=440,duration=.08,volume=.25){
+ const ctx=getAudioContext();if(!ctx||settings.volume<=0)return;
+ try{const now=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.setValueAtTime(frequency,now);osc.frequency.exponentialRampToValueAtTime(Math.max(45,frequency*.62),now+duration);gain.gain.setValueAtTime(.001,now);gain.gain.linearRampToValueAtTime(Math.max(.001,settings.volume*volume),now+.008);gain.gain.exponentialRampToValueAtTime(.001,now+duration);osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+duration+.015)}catch(e){}
+}
+function playGunshot(){
+ const ctx=getAudioContext();if(!ctx||settings.volume<=0)return;
+ try{
+  const now=ctx.currentTime,len=Math.max(1,Math.floor(ctx.sampleRate*.14)),buffer=ctx.createBuffer(1,len,ctx.sampleRate),data=buffer.getChannelData(0);
+  for(let i=0;i<len;i++){const envelope=Math.pow(1-i/len,2.5);data[i]=(Math.random()*2-1)*envelope}
+  const noise=ctx.createBufferSource();noise.buffer=buffer;const filter=ctx.createBiquadFilter();filter.type="lowpass";filter.frequency.setValueAtTime(2400,now);filter.frequency.exponentialRampToValueAtTime(650,now+.11);
+  const noiseGain=ctx.createGain();noiseGain.gain.setValueAtTime(.001,now);noiseGain.gain.linearRampToValueAtTime(settings.volume*.52,now+.003);noiseGain.gain.exponentialRampToValueAtTime(.001,now+.13);
+  noise.connect(filter);filter.connect(noiseGain);noiseGain.connect(ctx.destination);noise.start(now);noise.stop(now+.145);
+  const low=ctx.createOscillator(),lowGain=ctx.createGain();low.type="triangle";low.frequency.setValueAtTime(105,now);low.frequency.exponentialRampToValueAtTime(42,now+.085);lowGain.gain.setValueAtTime(.001,now);lowGain.gain.linearRampToValueAtTime(settings.volume*.3,now+.004);lowGain.gain.exponentialRampToValueAtTime(.001,now+.095);low.connect(lowGain);lowGain.connect(ctx.destination);low.start(now);low.stop(now+.105)
+ }catch(e){}
+}
+function spawnImpact(point,headshot=false){
+ const geo=new THREE.BufferGeometry(),positions=[];for(let i=0;i<7;i++)positions.push((Math.random()-.5)*.5,(Math.random()-.5)*.5,(Math.random()-.5)*.5);
+ geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));const material=new THREE.PointsMaterial({color:headshot?0xffd77d:0xd6d9cb,size:.13,transparent:true,opacity:.95,depthWrite:false});
+ const particles=new THREE.Points(geo,material);particles.position.copy(point);scene.add(particles);setTimeout(()=>{scene.remove(particles);geo.dispose();material.dispose()},180)
+}
+function spawnShell(muzzlePosition){
+ if(!casingGeometry||!casingMaterial||shellCasings.length>18)return;
+ const mesh=new THREE.Mesh(casingGeometry,casingMaterial);mesh.position.copy(muzzlePosition);mesh.position.x+=.12;mesh.position.y+=.02;mesh.position.z+=.04;mesh.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);scene.add(mesh);
+ shellCasings.push({mesh,life:1.35,velocity:new THREE.Vector3(.9+Math.random()*.8,1.3+Math.random(),.1+Math.random()*.8)})
+}
+function updateShellCasings(dt){
+ for(let i=shellCasings.length-1;i>=0;i--){const shell=shellCasings[i];shell.life-=dt;shell.velocity.y-=8.8*dt;shell.mesh.position.addScaledVector(shell.velocity,dt);shell.mesh.rotation.x+=dt*9;shell.mesh.rotation.z+=dt*7;if(shell.mesh.position.y<.08){shell.mesh.position.y=.08;shell.velocity.y=Math.abs(shell.velocity.y)*.22;shell.velocity.x*=.72;shell.velocity.z*=.72}if(shell.life<=0){scene.remove(shell.mesh);shellCasings.splice(i,1)}}
+}
 function say(text,duration=1700){const el=$("message");el.textContent=text;el.classList.add("show");clearTimeout(botMessageTimer);botMessageTimer=setTimeout(()=>el.classList.remove("show"),duration);}
 function safeLocalGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function safeLocalSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
@@ -378,11 +409,11 @@ function makePerson(color=skinColors[selectedSkin],isBot=false){
  const skin=hexMaterial(0xb98c6b,{roughness:.95}),bootMat=hexMaterial(0x202624,{roughness:.9});
  const gear=hexMaterial(isBot?0x596354:0x414f42,{roughness:.94}),darkMetal=hexMaterial(0x20282a,{roughness:.56,metalness:.35});
  const metal=hexMaterial(0x596462,{roughness:.5,metalness:.35});
- const torso=addMesh(new THREE.CapsuleGeometry(.34,.63,5,10),uniform,0,1.47,0,g);torso.scale.set(1.05,1,.82);
- const vest=addMesh(new THREE.CapsuleGeometry(.32,.4,4,10),armor,0,1.52,-.025,g);vest.scale.set(1.12,1,.9);
+ const torso=addMesh(new THREE.CapsuleGeometry(.34,.63,5,10),uniform,0,1.47,0,g);torso.scale.set(1.05,1,.82);torso.userData.hitZone="body";
+ const vest=addMesh(new THREE.CapsuleGeometry(.32,.4,4,10),armor,0,1.52,-.025,g);vest.scale.set(1.12,1,.9);vest.userData.hitZone="body";
  addMesh(new THREE.CylinderGeometry(.095,.11,.16,10),skin,0,1.99,0,g);
  addMesh(new THREE.CylinderGeometry(.14,.15,.14,10),armor,0,1.96,0,g);
- const head=addMesh(new THREE.SphereGeometry(.235,18,14),skin,0,2.14,-.015,g);head.scale.set(.93,1.05,.92);
+ const head=addMesh(new THREE.SphereGeometry(.235,18,14),skin,0,2.14,-.015,g);head.scale.set(.93,1.05,.92);head.userData.hitZone="head";
  const helmetMat=hexMaterial(isBot?0x38453d:0x3d4d40,{roughness:.8,metalness:.08});
  const helmet=addMesh(new THREE.SphereGeometry(.285,18,12,0,Math.PI*2,0,Math.PI*.63),helmetMat,0,2.34,-.015,g);helmet.scale.set(1.04,.88,1.02);
  addMesh(new THREE.CylinderGeometry(.285,.30,.055,18),helmetMat,0,2.29,-.01,g);
@@ -417,8 +448,10 @@ function makePerson(color=skinColors[selectedSkin],isBot=false){
  addMesh(new THREE.BoxGeometry(.105,.075,.16),darkMetal,0,.105,-.35,rifle);
  addMesh(new THREE.BoxGeometry(.09,.12,.11),gear,0,.16,-.18,rifle);
  addMesh(new THREE.BoxGeometry(.10,.12,.25),gear,0,-.01,.02,rifle);
- g.userData.rig={leftArm,rightArm,leftLeg,rightLeg};
- return g
+ const muzzleFlash=addMesh(new THREE.ConeGeometry(.105,.38,8),new THREE.MeshBasicMaterial({color:0xffbd57,transparent:true,opacity:.92}),0,.01,-1.12,rifle);muzzleFlash.rotation.x=-Math.PI/2;muzzleFlash.visible=false;
+ let muzzleLight=null;if(!isBot){muzzleLight=new THREE.PointLight(0xffb65a,0,7,2);muzzleLight.position.set(0,.015,-1.02);rifle.add(muzzleLight)}
+ g.userData.rig={leftArm,rightArm,leftLeg,rightLeg,rifle,muzzleFlash,muzzleLight};
+return g
 }
 
 function createPlayer(){player.group=makePerson();player.group.position.copy(player.pos);scene.add(player.group)}
@@ -427,7 +460,18 @@ function createLoot(){
  spots.forEach((p,i)=>{const g=new THREE.Group();const box=addMesh(new THREE.BoxGeometry(1.7,.9,1.2),hexMaterial(i%4===0?0x9e6847:0x4c6b5d),0,.65,0,g);addMesh(new THREE.BoxGeometry(1.75,.13,1.24),hexMaterial(0xd0bb83),0,1.13,0,g);const glow=addMesh(new THREE.OctahedronGeometry(.25,0),new THREE.MeshStandardMaterial({color:0x73e5bd,emissive:0x1f8c70,emissiveIntensity:1.5}),0,1.65,0,g);g.position.set(p[0],0,p[1]);g.userData={kind:i%5===4?"med":"scan",used:false,glow};scene.add(g);lootItems.push(g)})
 }
 function createBots(){for(let i=0;i<8;i++){const angle=(i/8)*Math.PI*2+.4;const distance=150+(i%3)*50;const g=makePerson([0x6c7968,0x8e7359,0x6b7682,0x655d4d,0x8b6b5c,0x586a5a,0x777c7d,0x8a805e][i],true);g.position.set(Math.cos(angle)*distance,0,Math.sin(angle)*distance);g.rotation.y=Math.random()*Math.PI*2;g.traverse(o=>{if(o.isMesh)o.userData.botId=i});scene.add(g);bots.push({id:i,group:g,health:100,active:true,tagCooldown:1.2+Math.random()*2,walkPhase:Math.random()*6})}}
-function moveCamera(dt){if(!player.group)return;const target=player.group.position.clone().add(new THREE.Vector3(0,player.crouched?1.25:1.72,0));const dist=cameraDistance;const offset=new THREE.Vector3(Math.sin(yaw)*dist,Math.sin(pitch)*dist+2.1,Math.cos(yaw)*dist);camera.position.copy(target).add(offset);camera.lookAt(target);camera.updateMatrixWorld()}
+function moveCamera(dt){
+ if(!player.group)return;
+ const wantedDistance=aimHeld?5.0:9.2;cameraDistance+=(wantedDistance-cameraDistance)*Math.min(1,dt*10);
+ const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ const target=player.group.position.clone().add(new THREE.Vector3(0,player.crouched?1.25:1.72,0)).addScaledVector(right,aimHeld?.68:.28);
+ const offset=new THREE.Vector3(Math.sin(yaw)*cameraDistance,Math.sin(pitch)*cameraDistance+1.8,Math.cos(yaw)*cameraDistance);
+ camera.position.copy(target).add(offset);camera.lookAt(target);
+ const wantedFov=aimHeld?49:64;camera.fov+=(wantedFov-camera.fov)*Math.min(1,dt*10);camera.updateProjectionMatrix();
+ if(recoilKick>0)camera.rotateX(recoilKick);
+ camera.updateMatrixWorld()
+}
+
 function blocked(x,z){if(Math.abs(x)>690||Math.abs(z)>690)return true;for(const s of solids)if(x>s.x-s.hx&&x<s.x+s.hx&&z>s.z-s.hz&&z<s.z+s.hz)return true;return false}
 function updatePlayer(dt){
  if(!gameActive||paused)return;
@@ -459,30 +503,34 @@ function updateBots(dt){
 }
 function shootWeapon(){
  if(!gameActive||paused)return;
- const now=performance.now()/1000;if(now-lastTag<.19)return;lastTag=now;
- if(state.ammo<=0){showToast("O‘Q TUGADI — R TUGMASI BILAN QAYTA O‘QLA",1100);playBeep(130,.05,.2);return}
- state.ammo--;const dir=camera.getWorldDirection(new THREE.Vector3()).normalize(),origin=camera.position.clone();
- let nearest=null,bestDepth=115,hitPoint=origin.clone().addScaledVector(dir,95);
- for(const bot of bots){
-  if(!bot.active)continue;
-  const target=bot.group.position.clone().add(new THREE.Vector3(0,1.36,0)),offset=target.clone().sub(origin),depth=offset.dot(dir);
-  if(depth<=0||depth>bestDepth)continue;
-  const perpendicular=offset.addScaledVector(dir,-depth).length();
-  if(perpendicular<1.65){nearest=bot;bestDepth=depth;hitPoint=target}
- }
- const tracerGeo=new THREE.BufferGeometry().setFromPoints([origin,hitPoint]);
- const tracer=new THREE.Line(tracerGeo,new THREE.LineBasicMaterial({color:nearest?0xffd58b:0xd9e2d7,transparent:true,opacity:.85}));
- tracer.frustumCulled=false;scene.add(tracer);setTimeout(()=>{scene.remove(tracer);tracerGeo.dispose();tracer.material.dispose()},85);
- playBeep(125,.035,.2);
- if(nearest){
-  nearest.health-=36;$("crosshair").classList.add("hit");setTimeout(()=>$("crosshair").classList.remove("hit"),130);
-  if(nearest.health<=0){
-   nearest.active=false;scene.remove(nearest.group);state.kills++;say("RAQIB YENGILDI",900);
-   if(bots.every(b=>!b.active))endGame(true);
-  }else say("NISHONGA TEGDI",450)
- }else if(state.ammo%5===0)showToast("O‘Q NISHONGA TEGMADI",550);
+ const now=performance.now()/1000;if(now-lastTag<(aimHeld?.105:.115))return;lastTag=now;
+ if(state.ammo<=0){if(now-lastEmptyClick>1){lastEmptyClick=now;showToast("O‘Q TUGADI — R TUGMASI BILAN QAYTA O‘QLA",1000);playBeep(155,.07,.16)}return}
+ state.ammo--;if(player.group)player.group.rotation.y=yaw;
+ const rig=player.group?.userData.rig;
+ if(rig?.muzzleFlash){rig.muzzleFlash.visible=true;if(rig.muzzleLight)rig.muzzleLight.intensity=aimHeld?2.1:3.8;setTimeout(()=>{rig.muzzleFlash.visible=false;if(rig.muzzleLight)rig.muzzleLight.intensity=0},48);rig.rifle.rotation.x=-.07;setTimeout(()=>{if(rig.rifle)rig.rifle.rotation.x=0},85)}
+ recoilKick=Math.min(aimHeld?.045:.075,recoilKick+(aimHeld?.009:.018));
+ const muzzlePosition=new THREE.Vector3();
+ if(rig?.rifle){player.group.updateMatrixWorld(true);rig.rifle.localToWorld(muzzlePosition.set(0,.015,-1.0))}
+ else muzzlePosition.copy(player.group.position).add(new THREE.Vector3(.35,1.45,0));
+ spawnShell(muzzlePosition);scene.updateMatrixWorld(true);
+ const spread=aimHeld?.0025:.0085;raycaster.setFromCamera(new THREE.Vector2((Math.random()-.5)*spread,(Math.random()-.5)*spread),camera);raycaster.far=220;
+ const activeGroups=bots.filter(b=>b.active).map(b=>b.group),botHits=raycaster.intersectObjects(activeGroups,true),worldHits=raycaster.intersectObjects(shootOccluders,false);
+ const firstBotHit=botHits[0]||null,firstWorldHit=worldHits[0]||null;
+ let targetBot=null,hitPoint=raycaster.ray.origin.clone().addScaledVector(raycaster.ray.direction,145),blockedByWorld=false,hitObject=null;
+ if(firstWorldHit&&(!firstBotHit||firstWorldHit.distance<firstBotHit.distance)){hitPoint.copy(firstWorldHit.point);blockedByWorld=true;hitObject=firstWorldHit.object}
+ else if(firstBotHit){hitPoint.copy(firstBotHit.point);hitObject=firstBotHit.object;targetBot=bots.find(b=>b.active&&b.id===firstBotHit.object.userData.botId)||null}
+ const tracerGeo=new THREE.BufferGeometry().setFromPoints([muzzlePosition,hitPoint]),tracerMat=new THREE.LineBasicMaterial({color:targetBot?0xffd487:0xe6dfc6,transparent:true,opacity:.92,depthTest:true});
+ const tracer=new THREE.Line(tracerGeo,tracerMat);tracer.frustumCulled=false;scene.add(tracer);setTimeout(()=>{scene.remove(tracer);tracerGeo.dispose();tracerMat.dispose()},aimHeld?65:82);playGunshot();
+ if(targetBot){
+  const hitZone=hitObject?.userData.hitZone||"body",damage=hitZone==="head"?82:hitZone==="body"?36:27;
+  targetBot.health-=damage;spawnImpact(hitPoint,hitZone==="head");$("crosshair").classList.add("hit");setTimeout(()=>$("crosshair").classList.remove("hit"),145);
+  say(hitZone==="head"?"BOSHGA TEGDI · "+damage:"NISHONGA TEGDI · "+damage,650);
+  if(targetBot.health<=0){targetBot.active=false;scene.remove(targetBot.group);state.kills++;say("RAQIB YENGILDI",900);if(bots.every(b=>!b.active))endGame(true)}
+ }else if(blockedByWorld){spawnImpact(hitPoint,false);if(state.ammo%6===0)showToast("TO‘SIQQA TEGDI",500)}
+ else if(state.ammo%5===0)showToast("O‘Q NISHONGA TEGMADI",500);
  updateHUD()
 }
+
 function reloadWeapon(){
  if(!gameActive||paused)return;
  if(state.ammo>=30){showToast("O‘Q TO‘LA",800);return}
